@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+
+{% block title %}Public Live Queue Display Board – {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+
+    <!-- Hero Banner with Hospital Summary -->
+    <div class="card border-0 shadow-sm mb-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0369a1 100%);">
+        <div class="card-body p-4 p-lg-5 position-relative">
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <span class="badge bg-teal text-white rounded-pill px-3 py-2 mb-3">
+                        <i class="fa-solid fa-hospital-user me-1"></i> Smart Hospital Optimization Engine
+                    </span>
+                    <h1 class="display-6 fw-bold mb-2">
+                        <span class="hospital-name-display">{{ hospital_name }}</span>
+                    </h1>
+                    <p class="lead mb-4 text-slate-300 fs-6">
+                        Real-time patient queue intelligence, active counter throughput, and dynamic waiting-time estimation.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% if not current_user.is_authenticated %}
+                            <a href="{{ url_for('auth.register') }}" class="btn btn-teal rounded-pill px-4 py-2 shadow-sm">
+                                <i class="fa-solid fa-ticket me-1"></i> Book Digital Token
+                            </a>
+                            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light rounded-pill px-4 py-2">
+                                <i class="fa-solid fa-right-to-bracket me-1"></i> Sign In to Portal
+                            </a>
+                        {% elif current_user.role == 'patient' %}
+                            <a href="{{ url_for('patient.dashboard') }}" class="btn btn-teal rounded-pill px-4 py-2 shadow-sm">
+                                <i class="fa-solid fa-ticket me-1"></i> My Patient Dashboard
+                            </a>
+                        {% elif current_user.role == 'staff' %}
+                            <a href="{{ url_for('staff.dashboard') }}" class="btn btn-primary rounded-pill px-4 py-2 shadow-sm">
+                                <i class="fa-solid fa-user-doctor me-1"></i> Staff Counter Console
+                            </a>
+                        {% elif current_user.role == 'admin' %}
+                            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-primary rounded-pill px-4 py-2 shadow-sm">
+                                <i class="fa-solid fa-chart-line me-1"></i> Executive Analytics Dashboard
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Hospital High-Level Metric Tiles -->
+                <div class="col-lg-5 mt-4 mt-lg-0">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="p-3 rounded-4 bg-white bg-opacity-10 backdrop-blur border border-white border-opacity-10 text-center">
+                                <span class="small text-uppercase text-slate-300">Total Waiting</span>
+                                <h2 class="fw-bold mb-0 text-white" id="board-total-waiting">{{ summary.total_waiting }}</h2>
+                                <span class="fs-xs text-slate-400">across queues</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-4 bg-white bg-opacity-10 backdrop-blur border border-white border-opacity-10 text-center">
+                                <span class="small text-uppercase text-slate-300">Currently Serving</span>
+                                <h2 class="fw-bold mb-0 text-teal" id="board-total-serving">{{ summary.currently_serving }}</h2>
+                                <span class="fs-xs text-slate-400">at counters</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-4 bg-white bg-opacity-10 backdrop-blur border border-white border-opacity-10 text-center">
+                                <span class="small text-uppercase text-slate-300">Active Counters</span>
+                                <h2 class="fw-bold mb-0 text-white" id="board-total-counters">{{ summary.active_counters }}</h2>
+                                <span class="fs-xs text-slate-400">operational stations</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-4 bg-white bg-opacity-10 backdrop-blur border border-white border-opacity-10 text-center">
+                                <span class="small text-uppercase text-slate-300">Completed Today</span>
+                                <h2 class="fw-bold mb-0 text-success" id="board-total-completed">{{ summary.completed_today }}</h2>
+                                <span class="fs-xs text-slate-400">finished visits</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Department Queue Display Cards Grid -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                <i class="fa-solid fa-satellite-dish text-primary"></i> Live Department Queue Status
+            </h4>
+            <span class="text-muted small">Updated in real time via WebSocket stream</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-light text-dark border px-3 py-2">
+                <i class="fa-solid fa-clock me-1 text-primary"></i> <span id="liveClock">--:--:--</span>
+            </span>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-5" id="departmentCardsGrid">
+        {% for d in dept_summaries %}
+        <div class="col-xl-4 col-md-6" id="dept-card-{{ d.department_id }}">
+            <div class="card h-100 shadow-sm border-0 position-relative overflow-hidden">
+                <div class="card-header border-0 py-3 d-flex justify-content-between align-items-center bg-white">
+                    <div>
+                        <span class="badge bg-primary-subtle text-primary fw-semibold">{{ d.department_code }}</span>
+                        <h6 class="fw-bold text-dark mb-0 mt-1" data-editable-id="department_{{ d.department_id }}">{{ d.department_name }}</h6>
+                    </div>
+                    <span class="badge bg-teal-subtle text-teal">
+                        <i class="fa-solid fa-desktop me-1"></i> {{ d.active_counters }} Counter{% if d.active_counters != 1 %}s{% endif %}
+                    </span>
+                </div>
+                <div class="card-body pt-0 pb-3">
+                    <p class="text-muted small mb-3 text-truncate">{{ d.description }}</p>
+
+                    <!-- Large Serving Token Display -->
+                    <div class="p-3 rounded-3 bg-light text-center mb-3 border">
+                        <span class="text-muted fs-xs text-uppercase fw-semibold">Now Serving</span>
+                        <div class="display-6 fw-bold text-primary my-1 serving-token-val">
+                            {{ d.currently_serving }}
+                        </div>
+                        <span class="badge bg-success-subtle text-success fs-xs">
+                            <span class="pulse-indicator me-1"></span> Active Consultation
+                        </span>
+                    </div>
+
+                    <!-- Metrics Grid -->
+                    <div class="row g-2 text-center">
+                        <div class="col-6">
+                            <div class="p-2 rounded-2 bg-light border">
+                                <span class="fs-xs text-muted text-uppercase d-block">In Queue</span>
+                                <span class="fw-bold text-dark fs-5 waiting-count-val">{{ d.waiting_count }}</span>
+                                <span class="fs-xs text-muted"> patients</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 rounded-2 bg-light border">
+                                <span class="fs-xs text-muted text-uppercase d-block">Est. Wait</span>
+                                <span class="fw-bold text-teal fs-5 est-wait-val">~{{ d.estimated_wait_time }}</span>
+                                <span class="fs-xs text-muted"> mins</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-top-0 pt-0 pb-3">
+                    {% if current_user.is_authenticated and current_user.role == 'patient' %}
+                        <form action="{{ url_for('patient.generate_token') }}" method="POST">
+                            <input type="hidden" name="department_id" value="{{ d.department_id }}">
+                            <button type="submit" class="btn btn-outline-primary btn-sm w-100 rounded-pill">
+                                <i class="fa-solid fa-plus me-1"></i> Join This Queue
+                            </button>
+                        </form>
+                    {% else %}
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-light btn-sm w-100 rounded-pill text-muted">
+                            Sign in to get token
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Hackathon Quick Evaluation Credentials Banner -->
+    <div class="card border-0 shadow-sm bg-blue-subtle p-3 mb-4 rounded-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h6 class="fw-bold text-primary mb-1">
+                    <i class="fa-solid fa-circle-info me-1"></i> Technovate 2.0 Hackathon Demo Accounts
+                </h6>
+                <div class="small text-muted">
+                    Test the application across all roles: 
+                    <b>Admin</b>: <code>admin / Admin@123</code> | 
+                    <b>Staff</b>: <code>staff / Staff@123</code> | 
+                    <b>Patient</b>: <code>patient / Patient@123</code>
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end mt-2 mt-md-0">
+                <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+                    Open Sign In Page
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Live clock
+setInterval(() => {
+    const now = new Date();
+    document.getElementById('liveClock').textContent = now.toLocaleTimeString();
+}, 1000);
+
+// Auto-refresh Public Summary via Socket.IO
+if (window.mqSocket) {
+    window.mqSocket.on('queue_updated', () => {
+        fetchPublicSummary();
+    });
+}
+
+// Fallback Polling every 12 seconds
+setInterval(fetchPublicSummary, 12000);
+
+async function fetchPublicSummary() {
+    try {
+        const res = await fetch('/api/queue/summary');
+        const data = await res.json();
+        if (data.success) {
+            let totalWait = 0;
+            let totalCounters = 0;
+
+            data.departments.forEach(d => {
+                totalWait += d.waiting_count;
+                totalCounters += d.active_counters;
+
+                const card = document.getElementById(`dept-card-${d.department_id}`);
+                if (card) {
+                    const servingEl = card.querySelector('.serving-token-val');
+                    const waitEl = card.querySelector('.waiting-count-val');
+                    const estEl = card.querySelector('.est-wait-val');
+
+                    if (servingEl) servingEl.textContent = d.currently_serving;
+                    if (waitEl) waitEl.textContent = d.waiting_count;
+                    if (estEl) estEl.textContent = `~${d.estimated_wait_time}`;
+                }
+            });
+
+            const totalWaitEl = document.getElementById('board-total-waiting');
+            if (totalWaitEl) totalWaitEl.textContent = totalWait;
+        }
+    } catch(e) {
+        console.warn('Live summary sync error:', e);
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient Registration – {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-primary-gradient text-white p-4 text-center border-0">
+                    <div class="brand-icon-box mx-auto mb-2">
+                        <i class="fa-solid fa-user-plus text-primary fs-4"></i>
+                    </div>
+                    <h4 class="fw-bold mb-1">Create Patient Account</h4>
+                    <p class="text-slate-300 small mb-0">Join MediQueue to book and track hospital queue tokens instantly</p>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    <form method="POST" action="{{ url_for('auth.register') }}">
+                        <div class="mb-3">
+                            <label for="full_name" class="form-label small fw-semibold text-muted">Full Legal Name *</label>
+                            <input type="text" class="form-control rounded-3 shadow-none" id="full_name" name="full_name" placeholder="e.g. Johnathan Doe" required autofocus>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="username" class="form-label small fw-semibold text-muted">Desired Username *</label>
+                                <input type="text" class="form-control rounded-3 shadow-none" id="username" name="username" placeholder="e.g. jdoe92" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label small fw-semibold text-muted">Contact Phone Number</label>
+                                <input type="tel" class="form-control rounded-3 shadow-none" id="phone" name="phone" placeholder="+1-555-0123">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label small fw-semibold text-muted">Email Address (Optional)</label>
+                            <input type="email" class="form-control rounded-3 shadow-none" id="email" name="email" placeholder="john.doe@example.com">
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label for="password" class="form-label small fw-semibold text-muted">Password * (min 6 chars)</label>
+                                <input type="password" class="form-control rounded-3 shadow-none" id="password" name="password" minlength="6" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="confirm_password" class="form-label small fw-semibold text-muted">Confirm Password *</label>
+                                <input type="password" class="form-control rounded-3 shadow-none" id="confirm_password" name="confirm_password" minlength="6" required>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-teal w-100 rounded-pill py-2 fw-semibold shadow-sm mb-3">
+                            <i class="fa-solid fa-user-check me-1"></i> Complete Registration
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <span class="small text-muted">Already registered?</span>
+                        <a href="{{ url_for('auth.login') }}" class="small fw-semibold text-primary text-decoration-none ms-1">Sign In here</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

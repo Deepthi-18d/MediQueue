@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}Digital Token #{{ token.token_number }} – MediQueue{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+
+            <!-- Back link -->
+            <div class="mb-3 d-flex justify-content-between align-items-center">
+                <a href="{{ url_for('patient_dashboard') }}" class="btn btn-sm btn-outline-secondary rounded-pill">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Patient Dashboard
+                </a>
+                <button onclick="window.print()" class="btn btn-sm btn-outline-primary rounded-pill">
+                    <i class="fa-solid fa-print me-1"></i> Print / Save Token
+                </button>
+            </div>
+
+            <!-- DIGITAL TICKET CONTAINER -->
+            <div class="digital-token-ticket bg-white shadow-lg text-center" id="printableTicket">
+                <!-- Header -->
+                <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+                    <div class="brand-icon-box bg-blue-subtle text-primary" style="width: 32px; height: 32px;">
+                        <i class="fa-solid fa-hospital-user"></i>
+                    </div>
+                    <span class="fw-bold fs-5 text-dark">MediQueue Hospital</span>
+                </div>
+                <div class="small text-muted mb-3">SMART PATIENT QUEUE PASS • TECHNOVATE 2.0</div>
+
+                <div class="py-2">
+                    <span class="badge bg-primary-subtle text-primary fs-6 px-3 py-1 rounded-pill mb-2">
+                        {{ token.department_name }}
+                    </span>
+                    <div class="token-big-badge my-1">
+                        {{ token.token_number }}
+                    </div>
+                    <span class="badge {% if token.status == 'SERVING' %}badge-status-serving{% elif token.status == 'COMPLETED' %}badge-status-completed{% else %}badge-status-waiting{% endif %} fs-6 px-3 py-1">
+                        STATUS: {{ token.status }}
+                    </span>
+                </div>
+
+                {% if token.is_priority %}
+                <div class="alert alert-warning py-2 small mb-3">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                    <strong>Clinical Priority Token:</strong> {{ token.priority_reason }}
+                </div>
+                {% endif %}
+
+                <hr class="my-3 opacity-25">
+
+                <!-- Ticket Details Matrix -->
+                <div class="row text-start g-2 small mb-4">
+                    <div class="col-6">
+                        <span class="text-muted d-block">Patient Name:</span>
+                        <strong class="text-dark">{{ token.patient_name }}</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted d-block">Date of Visit:</span>
+                        <strong class="text-dark">{{ token.date }}</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted d-block">Queue Position:</span>
+                        <strong class="text-primary">{{ token.status_label }}</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted d-block">Patients Ahead:</span>
+                        <strong class="text-dark">{{ token.patients_ahead if token.patients_ahead is not none else '0' }}</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted d-block">Est. Waiting Time:</span>
+                        <strong class="text-teal">~{{ token.estimated_wait_minutes }} minutes*</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted d-block">Now Serving:</span>
+                        <strong class="text-success">{{ token.current_serving or 'None' }}</strong>
+                    </div>
+                </div>
+
+                <!-- Simulated Hospital QR Code for Fast Kiosk Check-In -->
+                <div class="p-3 bg-light rounded-3 border d-inline-block mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="font-size: 2.8rem; line-height: 1;" class="text-dark">
+                            <i class="fa-solid fa-qrcode"></i>
+                        </div>
+                        <div class="text-start">
+                            <div class="fw-bold small text-dark">Digital Verification Code</div>
+                            <div class="text-muted fs-xs">Scan at Counter Scanner / Kiosk</div>
+                            <code class="text-primary small">{{ token.token_number }}-{{ token.id }}</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-muted small fst-italic" style="font-size: 0.75rem;">
+                    *Estimated waiting time is subject to change based on consultation complexity. Please remain in the patient waiting area or track live updates on your mobile dashboard.
+                </div>
+            </div>
+
+            <!-- Live Status helper -->
+            <div class="text-center mt-4">
+                <span class="small text-muted">
+                    <span class="pulse-indicator me-1"></span> Live Sync is tracking this token in real-time.
+                </span>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

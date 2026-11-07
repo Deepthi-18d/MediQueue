@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Login History – {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-right-to-bracket text-primary me-2"></i>Login History</h3>
+            <p class="text-muted mb-0">Complete user authentication and session activity log.</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back
+        </a>
+    </div>
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-custom table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>IP Address</th>
+                            <th>Login Time</th>
+                            <th>Logout Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in histories %}
+                        <tr>
+                            <td class="text-muted">#{{ h.id }}</td>
+                            <td class="fw-semibold text-dark">{{ h.user.full_name if h.user else 'Unknown' }}</td>
+                            <td><span class="badge bg-primary-subtle text-primary">{{ h.user.role if h.user else '--' }}</span></td>
+                            <td class="small text-muted">{{ h.ip_address or '--' }}</td>
+                            <td class="small text-muted">{{ h.login_time.strftime('%Y-%m-%d %H:%M:%S') if h.login_time else '--' }}</td>
+                            <td class="small text-muted">{{ h.logout_time.strftime('%Y-%m-%d %H:%M:%S') if h.logout_time else '--' }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if h.status == 'SUCCESS' else 'danger' }}-subtle text-{{ 'success' if h.status == 'SUCCESS' else 'danger' }}">
+                                    {{ h.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" class="text-center py-4 text-muted">No login records found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

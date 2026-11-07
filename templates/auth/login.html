@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In – {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-primary-gradient text-white p-4 text-center border-0">
+                    <div class="brand-icon-box mx-auto mb-2">
+                        <i class="fa-solid fa-hospital-user text-primary fs-4"></i>
+                    </div>
+                    <h4 class="fw-bold mb-1">Welcome to {{ app_name }}</h4>
+                    <p class="text-slate-300 small mb-0">Hospital Queue & Waiting-Time Optimization System</p>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next')) }}">
+                        <div class="mb-3">
+                            <label for="username" class="form-label small fw-semibold text-muted">Username or Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-user"></i></span>
+                                <input type="text" class="form-control border-start-0 ps-0 shadow-none" id="username" name="username" placeholder="Enter username or email" required autofocus>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="password" class="form-label small fw-semibold text-muted">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-lock"></i></span>
+                                <input type="password" class="form-control border-start-0 ps-0 shadow-none" id="password" name="password" placeholder="Enter password" required>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold shadow-sm mb-3">
+                            <i class="fa-solid fa-arrow-right-to-bracket me-1"></i> Sign In
+                        </button>
+                    </form>
+
+                    <!-- Quick 1-Click Demo Login Shortcuts for Hackathon Evaluation -->
+                    <div class="p-3 rounded-3 bg-light border mt-4">
+                        <span class="fs-xs text-muted text-uppercase fw-bold d-block mb-2 text-center">
+                            <i class="fa-solid fa-wand-magic-sparkles me-1 text-primary"></i> Fast Demo Autofill
+                        </span>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill text-start px-3" onclick="fillDemo('admin', 'Admin@123')">
+                                <i class="fa-solid fa-shield-halved me-1"></i> <b>Admin:</b> admin / Admin@123
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill text-start px-3" onclick="fillDemo('staff', 'Staff@123')">
+                                <i class="fa-solid fa-user-doctor me-1"></i> <b>Staff:</b> staff / Staff@123
+                            </button>
+                            <button type="button" class="btn btn-outline-teal btn-sm rounded-pill text-start px-3" onclick="fillDemo('patient', 'Patient@123')">
+                                <i class="fa-solid fa-hospital-user me-1"></i> <b>Patient:</b> patient / Patient@123
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <span class="small text-muted">Don't have an account?</span>
+                        <a href="{{ url_for('auth.register') }}" class="small fw-semibold text-primary text-decoration-none ms-1">Register as Patient</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function fillDemo(user, pass) {
+    document.getElementById('username').value = user;
+    document.getElementById('password').value = pass;
+}
+</script>
+{% endblock %}

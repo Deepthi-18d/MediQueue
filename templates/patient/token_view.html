@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Digital Token #{{ token.token_number }} – {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6">
+
+            <!-- Printable Receipt Card -->
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden" id="printableTokenCard">
+                <div class="card-header bg-primary-gradient text-white p-4 text-center border-0">
+                    <div class="brand-icon-box mx-auto mb-2">
+                        <i class="fa-solid fa-hospital-user text-primary fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-0 hospital-name-display">{{ hospital_name }}</h5>
+                    <div class="text-slate-300 fs-xs">Outpatient Department Queue Token</div>
+                </div>
+
+                <div class="card-body p-4 text-center">
+                    <div class="badge badge-status-{{ token.status | lower }} fs-6 px-3 py-1 rounded-pill mb-2">
+                        {{ token.status }}
+                    </div>
+
+                    <div class="display-4 fw-bold text-primary mb-1">{{ token.token_number }}</div>
+                    <h6 class="fw-bold text-dark mb-3">{{ token.department.name }} ({{ token.department.code }})</h6>
+
+                    <!-- QR Code -->
+                    <div class="p-3 bg-light rounded-4 border d-inline-block my-3">
+                        {% if qr_code_uri %}
+                            <img src="{{ qr_code_uri }}" alt="QR Code" class="img-fluid" style="width: 180px; height: 180px;">
+                        {% endif %}
+                        <div class="fs-xs text-muted mt-2">Scan at triage desk or consultation counter</div>
+                    </div>
+
+                    <!-- Token Details Table -->
+                    <div class="table-responsive text-start my-3">
+                        <table class="table table-sm border-0 mb-0">
+                            <tbody>
+                                <tr>
+                                    <td class="text-muted small">Patient Name:</td>
+                                    <td class="fw-semibold text-dark small text-end">{{ token.patient.full_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted small">Queue Position:</td>
+                                    <td class="fw-bold text-primary small text-end">#{{ wait_data.queue_position }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted small">Patients Ahead:</td>
+                                    <td class="fw-semibold text-dark small text-end">{{ wait_data.patients_ahead }} patient(s)</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted small">Estimated Waiting Time:</td>
+                                    <td class="fw-bold text-teal small text-end">~{{ wait_data.estimated_wait_time }} mins</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted small">Date & Time Issued:</td>
+                                    <td class="small text-muted text-end">{{ token.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted small">Assigned Counter:</td>
+                                    <td class="fw-semibold text-dark small text-end">{{ token.counter.name if token.counter else 'Pending Call' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-info py-2 px-3 small border-0 rounded-3 text-start mb-4">
+                        <i class="fa-solid fa-circle-info me-1"></i> {{ wait_data.disclaimer }}
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-center gap-2 d-print-none">
+                        <button onclick="window.print();" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                            <i class="fa-solid fa-print me-1"></i> Print Token
+                        </button>
+                        <a href="{{ url_for('patient.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-4">
+                            Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-light border-0 py-3 text-center text-muted fs-xs">
+                    Please listen for announcements and watch the display screens.
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

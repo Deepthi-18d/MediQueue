@@ -1,0 +1,27 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start MediQueue Server",
+            "type": "shell",
+            "command": "python app.py",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Run MediQueue Tests",
+            "type": "shell",
+            "command": "python test_mediqueue.py",
+            "problemMatcher": []
+        },
+        {
+            "label": "Re-seed Database",
+            "type": "shell",
+            "command": "python database.py",
+            "problemMatcher": []
+        }
+    ]
+}

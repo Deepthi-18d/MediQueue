@@ -1,0 +1,642 @@
+{% extends 'base.html' %}
+
+{% block title %}Hospital Administrative Analytics – MediQueue{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4" id="adminDashboardRoot">
+
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark">
+                <i class="fa-solid fa-chart-line text-primary me-2"></i>Executive Hospital Analytics & Queue Command
+            </h3>
+            <p class="text-muted mb-0">
+                Administrator: <span class="fw-semibold text-dark">{{ current_user.full_name }}</span> | 
+                Real-Time Hospital Queue Operations, Counter Utilization, and Service Metrics
+            </p>
+        </div>
+        <div class="mt-2 mt-md-0 d-flex align-items-center gap-2">
+            <button onclick="window.location.reload();" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm">
+                <i class="fa-solid fa-arrows-rotate me-1"></i> Refresh Data
+            </button>
+            <span class="badge bg-success-subtle text-success px-3 py-2" id="socketStatusIndicator">
+                <span class="pulse-indicator me-1"></span> Live Data Stream
+            </span>
+        </div>
+    </div>
+
+    <!-- 1. Top KPI Summary Tiles (All Required Metrics) -->
+    <div class="row g-3 mb-4">
+        <!-- Total Registered Patients -->
+        <div class="col-xl-4 col-md-6">
+            <div class="kpi-card shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Total Registered Patients</span>
+                    <h3 class="fw-bold mb-0 text-dark" id="kpi-registered-patients">{{ kpis.total_registered_patients }}</h3>
+                    <span class="text-muted fs-xs">Registered patient accounts</span>
+                </div>
+                <div class="kpi-icon bg-blue-subtle text-primary">
+                    <i class="fa-solid fa-address-book"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Patients Today -->
+        <div class="col-xl-4 col-md-6">
+            <div class="kpi-card shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Total Patients Today</span>
+                    <h3 class="fw-bold mb-0 text-dark" id="kpi-total-today">{{ kpis.total_patients_today }}</h3>
+                    <span class="text-muted fs-xs">Tokens issued today</span>
+                </div>
+                <div class="kpi-icon bg-blue-subtle text-primary">
+                    <i class="fa-solid fa-hospital-user"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Waiting Patients -->
+        <div class="col-xl-4 col-md-6">
+            <div class="kpi-card teal shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Waiting in Queue</span>
+                    <h3 class="fw-bold mb-0 text-dark" id="kpi-waiting">{{ kpis.total_waiting }}</h3>
+                    <span class="text-muted fs-xs">Across all departments</span>
+                </div>
+                <div class="kpi-icon bg-teal-subtle text-teal">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Currently Serving -->
+        <div class="col-xl-4 col-md-6">
+            <div class="kpi-card success shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Currently Serving</span>
+                    <h3 class="fw-bold mb-0 text-dark" id="kpi-serving">{{ kpis.currently_serving }}</h3>
+                    <span class="text-muted fs-xs">At consultation counters</span>
+                </div>
+                <div class="kpi-icon bg-success-subtle text-success">
+                    <i class="fa-solid fa-user-doctor"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Completed Services -->
+        <div class="col-xl-4 col-md-6">
+            <div class="kpi-card shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Completed Services</span>
+                    <h3 class="fw-bold mb-0 text-dark" id="kpi-completed">{{ kpis.completed_services }}</h3>
+                    <span class="text-muted fs-xs">Finished consultations</span>
+                </div>
+                <div class="kpi-icon bg-light text-primary">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cancelled & No-Show -->
+        <div class="col-xl-4 col-md-6">
+            <div class="kpi-card danger shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Cancelled & No-Show</span>
+                    <h3 class="fw-bold mb-0 text-dark">
+                        <span id="kpi-cancelled">{{ kpis.cancelled_tokens }}</span> / <span id="kpi-noshow">{{ kpis.noshow_tokens }}</span>
+                    </h3>
+                    <span class="text-muted fs-xs">Cancelled / No-Show tokens</span>
+                </div>
+                <div class="kpi-icon bg-danger-subtle text-danger">
+                    <i class="fa-solid fa-user-xmark"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Counters -->
+        <div class="col-xl-4 col-md-6">
+            <div class="kpi-card warning shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Active Counters</span>
+                    <h3 class="fw-bold mb-0 text-dark" id="kpi-active-counters">{{ kpis.active_counters }} / {{ kpis.total_counters }}</h3>
+                    <span class="text-muted fs-xs">Open / Available counters</span>
+                </div>
+                <div class="kpi-icon bg-warning-subtle text-warning">
+                    <i class="fa-solid fa-desktop"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Average Service Time -->
+        <div class="col-xl-4 col-md-6">
+            <div class="kpi-card teal shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Avg. Service Duration</span>
+                    <h3 class="fw-bold mb-0 text-teal" id="kpi-avg-service">{{ kpis.avg_service_time }}m</h3>
+                    <span class="text-muted fs-xs">From completed records</span>
+                </div>
+                <div class="kpi-icon bg-teal-subtle text-teal">
+                    <i class="fa-regular fa-clock"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Average Estimated Waiting Time -->
+        <div class="col-xl-4 col-md-6">
+            <div class="kpi-card shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Avg. Waiting Time</span>
+                    <h3 class="fw-bold mb-0 text-primary" id="kpi-avg-wait">~{{ kpis.avg_estimated_waiting_time }}m</h3>
+                    <span class="text-muted fs-xs">Estimated across queues</span>
+                </div>
+                <div class="kpi-icon bg-blue-subtle text-primary">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Chart.js Analytics Grid (5 Visualizations) -->
+    <div class="row g-4 mb-4">
+        <!-- Chart 1: Daily Patient Statuses -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-chart-pie text-primary me-2"></i>Daily Patient Queue Status Breakdown
+                    </h6>
+                    <span class="badge bg-light text-muted border">Real-Time</span>
+                </div>
+                <div class="card-body p-3">
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="dailyStatusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 2: Department-wise Distribution -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-chart-column text-primary me-2"></i>Department Patient Load Distribution
+                    </h6>
+                    <span class="badge bg-light text-muted border">8 Departments</span>
+                </div>
+                <div class="card-body p-3">
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="deptDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 3: Peak Hospital Hours -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-chart-line text-primary me-2"></i>Peak Hospital Hours (Patient Arrival Trends)
+                    </h6>
+                    <span class="badge bg-light text-muted border">08:00 – 18:00</span>
+                </div>
+                <div class="card-body p-3">
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="peakHoursChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 4: Average Service Time by Department -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-teal me-2">
+                        <i class="fa-solid fa-stopwatch text-teal me-2"></i>Average Service Duration by Department (Mins)
+                    </h6>
+                    <span class="badge bg-teal-subtle text-teal">Actual Times</span>
+                </div>
+                <div class="card-body p-3">
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="avgServiceTimeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 5: Counter Performance -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-bars-progress text-primary me-2"></i>Counter Performance (Patients Served per Station)
+                    </h6>
+                    <span class="badge bg-blue-subtle text-primary">Station Throughput</span>
+                </div>
+                <div class="card-body p-3">
+                    <div style="height: 220px; position: relative;">
+                        <canvas id="counterPerformanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Admin Management Tabs (View Patients, Staff, Departments, Tokens, Counters, Logs) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <ul class="nav nav-pills card-header-pills" id="adminTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-semibold" id="departments-tab" data-bs-toggle="pill" data-bs-target="#tab-departments" type="button" role="tab">
+                                <i class="fa-solid fa-hospital me-1"></i> Departments ({{ department_stats | length }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-semibold" id="tokens-tab" data-bs-toggle="pill" data-bs-target="#tab-tokens" type="button" role="tab">
+                                <i class="fa-solid fa-ticket me-1"></i> Today's Tokens ({{ all_tokens_today | length }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-semibold" id="patients-tab" data-bs-toggle="pill" data-bs-target="#tab-patients" type="button" role="tab">
+                                <i class="fa-solid fa-users me-1"></i> Registered Patients ({{ registered_patients | length }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-semibold" id="staff-tab" data-bs-toggle="pill" data-bs-target="#tab-staff" type="button" role="tab">
+                                <i class="fa-solid fa-user-doctor me-1"></i> Clinical Staff ({{ staff_members | length }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-semibold" id="counters-tab" data-bs-toggle="pill" data-bs-target="#tab-counters" type="button" role="tab">
+                                <i class="fa-solid fa-headset me-1"></i> Counters ({{ counter_performance | length }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-semibold" id="logs-tab" data-bs-toggle="pill" data-bs-target="#tab-logs" type="button" role="tab">
+                                <i class="fa-solid fa-list-check me-1"></i> Audit Logs ({{ staff_logs | length }})
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="tab-content" id="adminTabsContent">
+                        
+                        <!-- TAB 1: Departments -->
+                        <div class="tab-pane fade show active" id="tab-departments" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-custom table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Department</th>
+                                            <th>Code</th>
+                                            <th>Total Tokens</th>
+                                            <th>Waiting</th>
+                                            <th>Serving</th>
+                                            <th>Completed</th>
+                                            <th>Cancelled / No-Show</th>
+                                            <th>Active Counters</th>
+                                            <th>Avg Service Time</th>
+                                            <th>Est. Wait Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for d in department_stats %}
+                                        <tr>
+                                            <td class="fw-bold text-dark">{{ d.name }}</td>
+                                            <td><span class="badge bg-light text-dark border">{{ d.code }}</span></td>
+                                            <td><span class="fw-bold">{{ d.total_tokens }}</span></td>
+                                            <td><span class="badge badge-status-waiting">{{ d.waiting_count }}</span></td>
+                                            <td><span class="badge badge-status-serving">{{ d.serving_count }}</span></td>
+                                            <td><span class="badge badge-status-completed">{{ d.completed_count }}</span></td>
+                                            <td><span class="badge badge-status-cancelled">{{ d.dropped_count }}</span></td>
+                                            <td><span class="badge bg-success-subtle text-success">{{ d.active_counters }} Active</span></td>
+                                            <td><span class="text-teal fw-semibold">{{ d.avg_service_time }} mins</span></td>
+                                            <td><span class="text-primary fw-bold">~{{ d.estimated_wait_time }} mins</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: Today's Tokens -->
+                        <div class="tab-pane fade" id="tab-tokens" role="tabpanel">
+                            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                                <table class="table table-custom table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Token</th>
+                                            <th>Patient Name</th>
+                                            <th>Department</th>
+                                            <th>Counter</th>
+                                            <th>Status</th>
+                                            <th>Priority Triage</th>
+                                            <th>Generated</th>
+                                            <th>Called</th>
+                                            <th>Completed</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for t in all_tokens_today %}
+                                        <tr>
+                                            <td class="fw-bold text-primary">{{ t.token_number }}</td>
+                                            <td class="fw-semibold text-dark">{{ t.patient_name }}</td>
+                                            <td>{{ t.department_name }}</td>
+                                            <td>{{ t.counter_name or '--' }}</td>
+                                            <td>
+                                                <span class="badge badge-status-{{ t.status | lower }}">{{ t.status }}</span>
+                                            </td>
+                                            <td>
+                                                {% if t.is_priority %}
+                                                    <span class="badge badge-priority" title="{{ t.priority_reason }}"><i class="fa-solid fa-triangle-exclamation me-1"></i>Priority</span>
+                                                {% else %}
+                                                    <span class="badge bg-light text-muted border">Regular</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="small text-muted">{{ t.created_at.split(' ')[1] if t.created_at else '--' }}</td>
+                                            <td class="small text-muted">{{ t.called_at.split(' ')[1] if t.called_at else '--' }}</td>
+                                            <td class="small text-muted">{{ t.completed_at.split(' ')[1] if t.completed_at else '--' }}</td>
+                                        </tr>
+                                        {% else %}
+                                        <tr><td colspan="9" class="text-center py-4 text-muted">No tokens generated today yet.</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 3: Registered Patients -->
+                        <div class="tab-pane fade" id="tab-patients" role="tabpanel">
+                            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                                <table class="table table-custom table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Patient ID</th>
+                                            <th>Full Name</th>
+                                            <th>Username</th>
+                                            <th>Email Address</th>
+                                            <th>Phone Number</th>
+                                            <th>Registered On</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for p in registered_patients %}
+                                        <tr>
+                                            <td class="fw-bold text-muted">#{{ p.id }}</td>
+                                            <td class="fw-semibold text-dark">{{ p.full_name }}</td>
+                                            <td><code>{{ p.username }}</code></td>
+                                            <td>{{ p.email or '--' }}</td>
+                                            <td>{{ p.phone or '--' }}</td>
+                                            <td class="small text-muted">{{ p.created_at }}</td>
+                                        </tr>
+                                        {% else %}
+                                        <tr><td colspan="6" class="text-center py-4 text-muted">No registered patients found.</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 4: Clinical Staff -->
+                        <div class="tab-pane fade" id="tab-staff" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-custom table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Staff ID</th>
+                                            <th>Full Name</th>
+                                            <th>Username</th>
+                                            <th>Email Address</th>
+                                            <th>Phone Number</th>
+                                            <th>Assigned Department</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for s in staff_members %}
+                                        <tr>
+                                            <td class="fw-bold text-muted">#{{ s.id }}</td>
+                                            <td class="fw-semibold text-dark">{{ s.full_name }}</td>
+                                            <td><code>{{ s.username }}</code></td>
+                                            <td>{{ s.email }}</td>
+                                            <td>{{ s.phone }}</td>
+                                            <td><span class="badge bg-primary-subtle text-primary">{{ s.department_name or 'General Float' }}</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 5: Active Counters -->
+                        <div class="tab-pane fade" id="tab-counters" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-custom table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Counter Station</th>
+                                            <th>Department</th>
+                                            <th>Operating Status</th>
+                                            <th>Assigned Clinical Staff</th>
+                                            <th>Patients Served Today</th>
+                                            <th>Avg Handling Duration</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for c in counter_performance %}
+                                        <tr>
+                                            <td class="fw-bold text-dark">{{ c.name }}</td>
+                                            <td><span class="badge bg-light text-muted border">{{ c.department_name }}</span></td>
+                                            <td>
+                                                <span class="badge counter-pill {{ c.status | lower }}">{{ c.status }}</span>
+                                            </td>
+                                            <td>{{ c.current_staff or 'Unassigned' }}</td>
+                                            <td><span class="fw-bold text-primary">{{ c.patients_served }}</span></td>
+                                            <td><span class="fw-semibold text-teal">{{ c.avg_handling_time }} mins</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 6: Staff Activity Logs -->
+                        <div class="tab-pane fade" id="tab-logs" role="tabpanel">
+                            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                                <table class="table table-custom table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>Staff Member</th>
+                                            <th>Action Executed</th>
+                                            <th>Audit Trail Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for log in staff_logs %}
+                                        <tr>
+                                            <td class="small text-muted text-nowrap">
+                                                <i class="fa-regular fa-clock me-1"></i>{{ log.created_at }}
+                                            </td>
+                                            <td class="fw-semibold text-dark text-nowrap">{{ log.staff_name }}</td>
+                                            <td>
+                                                {% if log.action == 'CALL_TOKEN' %}
+                                                    <span class="badge bg-primary-subtle text-primary">CALL_TOKEN</span>
+                                                {% elif log.action == 'COMPLETE_SERVICE' %}
+                                                    <span class="badge bg-success-subtle text-success">COMPLETE_SERVICE</span>
+                                                {% elif log.action == 'PRIORITY_FLAGGED' %}
+                                                    <span class="badge badge-priority">PRIORITY_FLAGGED</span>
+                                                {% elif log.action == 'MARK_NOSHOW' %}
+                                                    <span class="badge bg-warning-subtle text-warning">MARK_NOSHOW</span>
+                                                {% else %}
+                                                    <span class="badge bg-light text-dark border">{{ log.action }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="small text-muted">{{ log.details }}</td>
+                                        </tr>
+                                        {% else %}
+                                        <tr><td colspan="4" class="text-center py-4 text-muted">No staff activity logs recorded.</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Initialize Chart.js Analytics
+document.addEventListener('DOMContentLoaded', () => {
+    window.adminCharts = {};
+
+    // 1. Daily Status Doughnut Chart
+    const statusCtx = document.getElementById('dailyStatusChart')?.getContext('2d');
+    if (statusCtx) {
+        window.adminCharts.statusChart = new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ charts.daily_status.labels | tojson }},
+                datasets: [{
+                    data: {{ charts.daily_status.datasets[0].data | tojson }},
+                    backgroundColor: {{ charts.daily_status.datasets[0].backgroundColor | tojson }},
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
+    // 2. Department Distribution Bar Chart
+    const deptCtx = document.getElementById('deptDistributionChart')?.getContext('2d');
+    if (deptCtx) {
+        window.adminCharts.deptChart = new Chart(deptCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ charts.dept_distribution.labels | tojson }},
+                datasets: [{
+                    label: 'Tokens Issued Today',
+                    data: {{ charts.dept_distribution.datasets[0].data | tojson }},
+                    backgroundColor: {{ charts.dept_distribution.datasets[0].backgroundColor | tojson }},
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+
+    // 3. Peak Hours Line Chart
+    const peakCtx = document.getElementById('peakHoursChart')?.getContext('2d');
+    if (peakCtx) {
+        window.adminCharts.peakChart = new Chart(peakCtx, {
+            type: 'line',
+            data: {
+                labels: {{ charts.peak_hours.labels | tojson }},
+                datasets: [{
+                    label: 'Patient Arrivals / Tokens Generated',
+                    data: {{ charts.peak_hours.datasets[0].data | tojson }},
+                    borderColor: '#0284c7',
+                    backgroundColor: 'rgba(2, 132, 199, 0.15)',
+                    fill: true,
+                    tension: 0.35,
+                    pointBackgroundColor: '#0284c7',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+
+    // 4. Average Service Time Horizontal Bar Chart
+    const avgCtx = document.getElementById('avgServiceTimeChart')?.getContext('2d');
+    if (avgCtx) {
+        window.adminCharts.avgChart = new Chart(avgCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ charts.avg_service_time.labels | tojson }},
+                datasets: [{
+                    label: 'Avg Service Duration (Minutes)',
+                    data: {{ charts.avg_service_time.datasets[0].data | tojson }},
+                    backgroundColor: '#14b8a6',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { x: { beginAtZero: true, title: { display: true, text: 'Minutes' } } }
+            }
+        });
+    }
+
+    // 5. Counter Performance Bar Chart
+    const counterCtx = document.getElementById('counterPerformanceChart')?.getContext('2d');
+    if (counterCtx) {
+        window.adminCharts.counterChart = new Chart(counterCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ charts.counter_performance.labels | tojson }},
+                datasets: [{
+                    label: 'Patients Served Today',
+                    data: {{ charts.counter_performance.datasets[0].data | tojson }},
+                    backgroundColor: '#0284c7',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

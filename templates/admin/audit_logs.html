@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Audit Trail – {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-list-check text-primary me-2"></i>System Audit Trail</h3>
+            <p class="text-muted mb-0">Immutable record of all administrative and staff actions. Sorted newest first.</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back
+        </a>
+    </div>
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-custom table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Performed By</th>
+                            <th>Action</th>
+                            <th>Target Type</th>
+                            <th>Old Value</th>
+                            <th>New Value</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td class="small text-muted text-nowrap">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td class="fw-semibold text-dark">{{ log.user.full_name if log.user else 'System' }}</td>
+                            <td><span class="badge bg-primary-subtle text-primary">{{ log.action }}</span></td>
+                            <td class="small text-muted">{{ log.target_type or '--' }}</td>
+                            <td class="small text-muted">{{ (log.old_value or '--')[:40] }}</td>
+                            <td class="small fw-semibold text-dark">{{ (log.new_value or '--')[:40] }}</td>
+                            <td class="small text-muted">{{ (log.details or '')[:80] }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" class="text-center py-4 text-muted">No audit records found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

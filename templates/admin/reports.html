@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Reports & CSV Export – {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-file-csv text-primary me-2"></i>Reports & Data Export</h3>
+            <p class="text-muted mb-0">Generate and download CSV reports with custom date and department filters.</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 mt-2 mt-md-0">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <div class="row g-4">
+        {% set reports = [
+            ('tokens', 'Queue Token Records', 'fa-ticket', 'primary', 'All generated tokens with status, timing, and priority data.'),
+            ('services', 'Service Records & Durations', 'fa-stopwatch', 'teal', 'Completed consultation records with staff and duration data.'),
+            ('audit_logs', 'System Audit Trail', 'fa-list-check', 'warning', 'All admin and staff action logs with timestamps.'),
+            ('login_history', 'Login History Report', 'fa-right-to-bracket', 'danger', 'Complete user authentication and session history.')
+        ] %}
+
+        {% for type, label, icon, color, desc in reports %}
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="kpi-icon bg-{{ color }}-subtle text-{{ color if color != 'teal' else 'teal' }}" style="width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center;">
+                            <i class="fa-solid {{ icon }} fs-5"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-dark mb-0">{{ label }}</h6>
+                            <span class="small text-muted">{{ desc }}</span>
+                        </div>
+                    </div>
+
+                    <form action="{{ url_for('admin.export_csv') }}" method="GET" class="row g-2 align-items-end">
+                        <input type="hidden" name="type" value="{{ type }}">
+
+                        {% if type in ['tokens', 'services'] %}
+                        <div class="col-5">
+                            <label class="form-label small fw-semibold text-muted mb-1">From Date</label>
+                            <input type="date" class="form-control form-control-sm rounded-3" name="start_date" value="{{ today }}">
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label small fw-semibold text-muted mb-1">To Date</label>
+                            <input type="date" class="form-control form-control-sm rounded-3" name="end_date" value="{{ today }}">
+                        </div>
+                        {% endif %}
+
+                        {% if type in ['tokens', 'services'] %}
+                        <div class="col-10 mb-1">
+                            <label class="form-label small fw-semibold text-muted mb-1">Department Filter</label>
+                            <select class="form-select form-select-sm rounded-3" name="department_id">
+                                <option value="">All Departments</option>
+                                {% for d in departments %}
+                                <option value="{{ d.id }}">{{ d.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm">
+                                <i class="fa-solid fa-download me-1"></i> Download CSV
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

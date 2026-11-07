@@ -1,0 +1,34 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+venv/
+env/
+ENV/
+.env
+
+# VS Code & IDE
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
+
+# SQLite local data files (keep schema/init, ignore temporary locks)
+*.sqlite3-journal
+*.db-journal
+
+# Operating system
+Thumbs.db
+Desktop.ini
+.DS_Store
+instance/*.db
+instance/*.sqlite*
+*.db
+*.sqlite
+*.sqlite3
+.pytest_cache/
+node_modules/
+.antigravity-ide/

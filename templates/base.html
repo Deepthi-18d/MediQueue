@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ app_name }} – Smart Hospital Queue & Waiting-Time Optimization System{% endblock %}</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary-gradient sticky-top shadow-sm py-2">
+        <div class="container-fluid px-lg-4">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="{{ url_for('main.index') }}">
+                <div class="brand-icon-box">
+                    <i class="fa-solid fa-hospital-user text-primary"></i>
+                </div>
+                <span><span class="hospital-name-display">{{ app_name }}</span></span>
+                <span class="badge bg-teal-subtle text-teal ms-1 d-none d-sm-inline-block small-badge">TECHNOVATE 2.0</span>
+            </a>
+            
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-lg-center">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.index' %}active fw-semibold{% endif %}" href="{{ url_for('main.index') }}">
+                            <i class="fa-solid fa-tv me-1 text-teal"></i> Public Live Board
+                        </a>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.role == 'patient' %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'patient.dashboard' %}active fw-semibold{% endif %}" href="{{ url_for('patient.dashboard') }}">
+                                <i class="fa-solid fa-ticket me-1"></i> Patient Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'patient.profile' %}active fw-semibold{% endif %}" href="{{ url_for('patient.profile') }}">
+                                <i class="fa-solid fa-id-card me-1"></i> My Profile
+                            </a>
+                        </li>
+                        {% elif current_user.role == 'staff' %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'staff.dashboard' %}active fw-semibold{% endif %}" href="{{ url_for('staff.dashboard') }}">
+                                <i class="fa-solid fa-user-doctor me-1"></i> Staff Counter Console
+                            </a>
+                        </li>
+                        {% elif current_user.role == 'admin' %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'admin.dashboard' %}active fw-semibold{% endif %}" href="{{ url_for('admin.dashboard') }}">
+                                <i class="fa-solid fa-chart-line me-1"></i> Hospital Analytics
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'admin.reports' %}active fw-semibold{% endif %}" href="{{ url_for('admin.reports') }}">
+                                <i class="fa-solid fa-file-csv me-1"></i> Reports & Export
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'admin.audit_logs' %}active fw-semibold{% endif %}" href="{{ url_for('admin.audit_logs') }}">
+                                <i class="fa-solid fa-list-check me-1"></i> Audit Trail
+                            </a>
+                        </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+
+                <!-- Right Nav: Dark Mode, Notifications, User Menu -->
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Dark Mode Toggle Button -->
+                    <button class="btn btn-outline-light btn-sm rounded-circle p-2" id="themeToggleBtn" type="button" title="Toggle Light/Dark Theme">
+                        <i class="fa-solid fa-moon" id="themeToggleIcon"></i>
+                    </button>
+
+                    {% if current_user.is_authenticated %}
+                        <!-- In-App Notification Bell Dropdown -->
+                        <div class="dropdown">
+                            <button class="btn btn-outline-light btn-sm rounded-circle p-2 position-relative" type="button" id="notificationDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+                                <i class="fa-solid fa-bell"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" id="notificationBadge">
+                                    0
+                                </span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0 mt-2" style="width: 320px; max-height: 400px; overflow-y: auto;" aria-labelledby="notificationDropdownBtn">
+                                <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+                                    <span class="fw-bold small text-dark"><i class="fa-solid fa-bell me-1 text-primary"></i> Notifications</span>
+                                    <button onclick="fetch('/api/notifications/mark_all_read', {method:'POST'}).then(()=>fetchNotifications());" class="btn btn-link btn-sm p-0 text-decoration-none fs-xs text-primary">Mark all read</button>
+                                </div>
+                                <div id="notificationList" class="p-2">
+                                    <div class="text-center py-3 text-muted small"><i class="fa-solid fa-spinner fa-spin me-1"></i> Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- User Profile Menu -->
+                        <div class="dropdown">
+                            <button class="btn btn-outline-light btn-sm dropdown-toggle d-flex align-items-center gap-2 rounded-pill px-3" type="button" id="userMenuBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="avatar-circle">
+                                    <i class="fa-solid {% if current_user.role == 'admin' %}fa-user-shield{% elif current_user.role == 'staff' %}fa-stethoscope{% else %}fa-user{% endif %}"></i>
+                                </span>
+                                <span class="d-none d-md-inline">{{ current_user.full_name }}</span>
+                                <span class="badge bg-white text-primary text-uppercase fs-xs">{{ current_user.role }}</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userMenuBtn">
+                                <li class="dropdown-header">
+                                    <div class="fw-bold text-dark">{{ current_user.full_name }}</div>
+                                    <div class="small text-muted">@{{ current_user.username }}</div>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% if current_user.role == 'patient' %}
+                                <li><a class="dropdown-item" href="{{ url_for('patient.dashboard') }}"><i class="fa-solid fa-ticket text-primary me-2"></i>My Tokens</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('patient.profile') }}"><i class="fa-solid fa-user-pen text-primary me-2"></i>Edit Profile</a></li>
+                                {% elif current_user.role == 'staff' %}
+                                <li><a class="dropdown-item" href="{{ url_for('staff.dashboard') }}"><i class="fa-solid fa-user-doctor text-primary me-2"></i>Counter Console</a></li>
+                                {% elif current_user.role == 'admin' %}
+                                <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}"><i class="fa-solid fa-chart-line text-primary me-2"></i>Admin KPIs</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin.reports') }}"><i class="fa-solid fa-file-csv text-primary me-2"></i>Reports & Export</a></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}"><i class="fa-solid fa-key text-secondary me-2"></i>Change Password</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fa-solid fa-right-from-bracket me-2"></i>Sign Out</a></li>
+                            </ul>
+                        </div>
+                    {% else %}
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light btn-sm rounded-pill px-3">
+                            <i class="fa-solid fa-arrow-right-to-bracket me-1"></i> Sign In
+                        </a>
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-teal btn-sm rounded-pill px-3 shadow-sm">
+                            <i class="fa-solid fa-user-plus me-1"></i> Register
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Global Flash Notification Messages -->
+    <div class="container-fluid px-lg-4 mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show shadow-sm d-flex align-items-center gap-2" role="alert">
+                        {% if category == 'success' %}
+                            <i class="fa-solid fa-circle-check fs-5"></i>
+                        {% elif category == 'danger' or category == 'error' %}
+                            <i class="fa-solid fa-triangle-exclamation fs-5"></i>
+                        {% elif category == 'warning' %}
+                            <i class="fa-solid fa-circle-exclamation fs-5"></i>
+                        {% else %}
+                            <i class="fa-solid fa-circle-info fs-5"></i>
+                        {% endif %}
+                        <div>{{ message }}</div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content Block -->
+    <main class="flex-grow-1 py-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- SECTION 7: Universal Inline Name & Hospital Settings Modal (COMPULSORY) -->
+    <div class="modal fade" id="universalEditModal" tabindex="-1" aria-labelledby="editModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg rounded-4">
+                <form id="universalEditForm">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="editModalTitle">
+                            <i class="fa-solid fa-pen-to-square text-primary"></i> Edit Name
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <input type="hidden" name="entity_type" id="editEntityType">
+                        <input type="hidden" name="entity_id" id="editEntityId">
+                        <input type="hidden" name="field_name" id="editFieldName" value="name">
+
+                        <div class="mb-3">
+                            <label for="editModalInput" class="form-label small fw-semibold text-muted" id="editModalLabel">New Value:</label>
+                            <input type="text" class="form-control form-control-lg rounded-3 shadow-none" id="editModalInput" name="new_value" required autocomplete="off">
+                            <div class="form-text small text-muted">Changes are saved directly to the database and recorded in the audit trail.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Professional Footer -->
+    <footer class="bg-white border-top py-4 mt-auto">
+        <div class="container-fluid px-lg-4">
+            <div class="row align-items-center justify-content-between gy-3">
+                <div class="col-md-6 text-center text-md-start">
+                    <div class="fw-bold text-dark d-flex align-items-center gap-2 justify-content-center justify-content-md-start">
+                        <i class="fa-solid fa-hospital text-primary"></i>
+                        <span class="hospital-name-display">{{ hospital_name }}</span>
+                    </div>
+                    <div class="small text-muted mt-1">
+                        Helpline: <span class="fw-semibold">{{ contact_phone }}</span> | 
+                        Email: <span class="fw-semibold">{{ contact_email }}</span>
+                    </div>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <div class="d-inline-flex align-items-center gap-2">
+                        <span class="badge bg-success-subtle text-success px-3 py-2" id="socketStatusIndicator">
+                            <span class="pulse-indicator me-1"></span> Live Data Stream
+                        </span>
+                        <span class="text-muted small">&copy; 2026 MediQueue • TECHNOVATE 2.0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- MediQueue Global Script -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

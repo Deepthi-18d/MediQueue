@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In – MediQueue{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-5">
+            <div class="card shadow-lg border-0 p-3 p-md-4">
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="brand-icon-box mx-auto mb-2 bg-blue-subtle text-primary" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                            <i class="fa-solid fa-hospital-user"></i>
+                        </div>
+                        <h3 class="fw-bold text-dark">Welcome to MediQueue</h3>
+                        <p class="text-muted small">Sign in to your patient, clinical staff, or administrator account.</p>
+                    </div>
+
+                    <!-- Quick Demo Credentials Selector -->
+                    <div class="p-3 bg-light rounded-3 border mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-bold text-primary"><i class="fa-solid fa-wand-magic-sparkles me-1"></i> Quick Demo 1-Click Login</span>
+                            <span class="badge bg-teal text-white">Reviewer Shortcut</span>
+                        </div>
+                        <div class="d-grid gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-danger text-start py-1" onclick="quickFill('admin@mediqueue.com', 'Admin@123')">
+                                <i class="fa-solid fa-user-shield me-2"></i> <strong>Admin</strong> (admin@mediqueue.com)
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary text-start py-1" onclick="quickFill('staff@mediqueue.com', 'Staff@123')">
+                                <i class="fa-solid fa-user-doctor me-2"></i> <strong>Staff</strong> (staff@mediqueue.com)
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-success text-start py-1" onclick="quickFill('patient@mediqueue.com', 'Patient@123')">
+                                <i class="fa-solid fa-user me-2"></i> <strong>Patient</strong> (patient@mediqueue.com)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Standard Login Form -->
+                    <form action="{{ url_for('login', next=request.args.get('next', '')) }}" method="POST" id="loginForm">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold" for="username">Username or Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fa-solid fa-user text-muted"></i></span>
+                                <input type="text" class="form-control" id="username" name="username" placeholder="e.g. admin@mediqueue.com or admin" required autofocus>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-semibold" for="password">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fa-solid fa-lock text-muted"></i></span>
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary bg-primary-gradient w-100 py-2 fw-semibold rounded-pill shadow-sm">
+                            <i class="fa-solid fa-arrow-right-to-bracket me-2"></i> Sign In
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-4 pt-2 border-top">
+                        <span class="small text-muted">Are you a new patient?</span>
+                        <a href="{{ url_for('register') }}" class="small fw-semibold text-primary ms-1">Create an Account</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function quickFill(user, pass) {
+    document.getElementById('username').value = user;
+    document.getElementById('password').value = pass;
+    document.getElementById('loginForm').submit();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient Registration – MediQueue{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0 p-3 p-md-4">
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="brand-icon-box mx-auto mb-2 bg-teal-subtle text-teal" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                            <i class="fa-solid fa-user-plus"></i>
+                        </div>
+                        <h3 class="fw-bold text-dark">Register as Patient</h3>
+                        <p class="text-muted small">Create your digital healthcare profile to book and track hospital queue tokens in real time.</p>
+                    </div>
+
+                    <form action="{{ url_for('register') }}" method="POST">
+                        <div class="row g-3 mb-3">
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold" for="full_name">Full Name</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fa-solid fa-id-card text-muted"></i></span>
+                                    <input type="text" class="form-control" id="full_name" name="full_name" placeholder="e.g. Eleanor Vance" required>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold" for="username">Username</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fa-solid fa-user text-muted"></i></span>
+                                    <input type="text" class="form-control" id="username" name="username" placeholder="Choose a username" required>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold" for="phone">Phone Number</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fa-solid fa-phone text-muted"></i></span>
+                                    <input type="tel" class="form-control" id="phone" name="phone" placeholder="+1-555-0199" required>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold" for="email">Email Address</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fa-solid fa-envelope text-muted"></i></span>
+                                    <input type="email" class="form-control" id="email" name="email" placeholder="eleanor.vance@example.com">
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold" for="password">Create Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fa-solid fa-lock text-muted"></i></span>
+                                    <input type="password" class="form-control" id="password" name="password" placeholder="Minimum 6 characters" required minlength="6">
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-teal w-100 py-2 fw-semibold rounded-pill shadow-sm">
+                            <i class="fa-solid fa-check-circle me-2"></i> Create Patient Account
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-4 pt-2 border-top">
+                        <span class="small text-muted">Already registered?</span>
+                        <a href="{{ url_for('login') }}" class="small fw-semibold text-primary ms-1">Sign In Here</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

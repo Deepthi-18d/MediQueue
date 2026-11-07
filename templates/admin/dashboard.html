@@ -1,0 +1,851 @@
+{% extends 'base.html' %}
+
+{% block title %}Hospital Administrative Analytics & Queue Command – {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4" id="adminDashboardRoot">
+
+    <!-- Header Section with Section 7 Editable Names -->
+    <div class="card border-0 shadow-sm bg-white p-4 mb-4 rounded-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-primary text-white rounded-pill px-3 py-1">Executive Console</span>
+                    <!-- Editable Hospital Name (Section 7) -->
+                    <span class="fs-4 fw-bold text-dark editable-container">
+                        <span class="hospital-name-display" data-editable-id="setting_hospital_name">{{ hospital_name }}</span>
+                        <button class="btn-edit-pencil" data-entity-type="setting" data-entity-id="hospital_name" data-current-value="{{ hospital_name }}" data-title="Hospital Name" title="Edit Hospital Operational Name">
+                            <i class="fa-solid fa-pencil"></i>
+                        </button>
+                    </span>
+                </div>
+                <p class="text-muted small mb-0">
+                    Chief Administrator: 
+                    <span class="fw-semibold text-dark editable-container">
+                        <span data-editable-id="setting_admin_display_name">{{ admin_name }}</span>
+                        <button class="btn-edit-pencil" data-entity-type="setting" data-entity-id="admin_display_name" data-current-value="{{ admin_name }}" data-title="Admin Display Name" title="Edit Administrator Name">
+                            <i class="fa-solid fa-pencil"></i>
+                        </button>
+                    </span> | 
+                    Helpline: 
+                    <span class="fw-semibold text-dark editable-container">
+                        <span data-editable-id="setting_contact_phone">{{ contact_phone }}</span>
+                        <button class="btn-edit-pencil" data-entity-type="setting" data-entity-id="contact_phone" data-current-value="{{ contact_phone }}" data-title="Hospital Contact Phone" title="Edit Contact Helpline">
+                            <i class="fa-solid fa-pencil"></i>
+                        </button>
+                    </span> | 
+                    App Title: 
+                    <span class="fw-semibold text-teal editable-container">
+                        <span data-editable-id="setting_app_name">{{ app_name }}</span>
+                        <button class="btn-edit-pencil" data-entity-type="setting" data-entity-id="app_name" data-current-value="{{ app_name }}" data-title="Application Display Name" title="Edit App Name">
+                            <i class="fa-solid fa-pencil"></i>
+                        </button>
+                    </span>
+                </p>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ url_for('admin.reports') }}" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm">
+                    <i class="fa-solid fa-file-csv me-1"></i> Reports & Export
+                </a>
+                <button onclick="window.location.reload();" class="btn btn-light btn-sm rounded-pill px-3 border shadow-sm">
+                    <i class="fa-solid fa-arrows-rotate me-1"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. Top KPI Summary Tiles (8 Compulsory Hospital Metrics) -->
+    <div class="row g-3 mb-4">
+        <!-- Total Registered Patients -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Total Registered Patients</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ kpis.total_registered_patients }}</h3>
+                    <span class="text-muted fs-xs">Registered patient accounts</span>
+                </div>
+                <div class="kpi-icon bg-blue-subtle text-primary">
+                    <i class="fa-solid fa-address-book"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Patients Today -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Total Patients Today</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ kpis.total_patients_today }}</h3>
+                    <span class="text-muted fs-xs">Tokens issued today</span>
+                </div>
+                <div class="kpi-icon bg-blue-subtle text-primary">
+                    <i class="fa-solid fa-hospital-user"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Waiting in Queue -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card teal shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Waiting in Queue</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ kpis.total_waiting }}</h3>
+                    <span class="text-muted fs-xs">Across all departments</span>
+                </div>
+                <div class="kpi-icon bg-teal-subtle text-teal">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Currently Serving -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card success shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Currently Serving</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ kpis.currently_serving }}</h3>
+                    <span class="text-muted fs-xs">At consultation counters</span>
+                </div>
+                <div class="kpi-icon bg-success-subtle text-success">
+                    <i class="fa-solid fa-user-doctor"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Completed Services -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Completed Services</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ kpis.completed_services }}</h3>
+                    <span class="text-muted fs-xs">Finished consultations</span>
+                </div>
+                <div class="kpi-icon bg-light text-primary">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cancelled & No-Show -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card danger shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Cancelled & No-Show</span>
+                    <h3 class="fw-bold mb-0 text-dark">
+                        {{ kpis.cancelled_tokens }} / {{ kpis.noshow_tokens }}
+                    </h3>
+                    <span class="text-muted fs-xs">Cancelled / No-Show tokens</span>
+                </div>
+                <div class="kpi-icon bg-danger-subtle text-danger">
+                    <i class="fa-solid fa-user-xmark"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Counters -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card warning shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Active Counters</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ kpis.active_counters }} / {{ kpis.total_counters }}</h3>
+                    <span class="text-muted fs-xs">Open operational stations</span>
+                </div>
+                <div class="kpi-icon bg-warning-subtle text-warning">
+                    <i class="fa-solid fa-desktop"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Average Service Duration -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card teal shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Avg. Service Duration</span>
+                    <h3 class="fw-bold mb-0 text-teal">{{ kpis.avg_service_time }}m</h3>
+                    <span class="text-muted fs-xs">From completed records</span>
+                </div>
+                <div class="kpi-icon bg-teal-subtle text-teal">
+                    <i class="fa-regular fa-clock"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Chart.js Visualizations Grid (5 Real Data Charts) -->
+    <div class="row g-4 mb-4">
+        <!-- Chart 1: Daily Status Breakdown -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-chart-pie text-primary me-2"></i>Daily Patient Queue Status Breakdown
+                    </h6>
+                    <span class="badge bg-light text-muted border">Real-Time</span>
+                </div>
+                <div class="card-body p-3">
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="dailyStatusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 2: Department Patient Load -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-chart-column text-primary me-2"></i>Department Patient Load Distribution
+                    </h6>
+                    <span class="badge bg-light text-muted border">Live Tokens</span>
+                </div>
+                <div class="card-body p-3">
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="deptDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 3: Peak Hospital Hours -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-chart-line text-primary me-2"></i>Peak Hospital Hours (Patient Arrival Trends)
+                    </h6>
+                    <span class="badge bg-light text-muted border">08:00 – 18:00</span>
+                </div>
+                <div class="card-body p-3">
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="peakHoursChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 4: Average Service Duration by Department -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-teal me-2">
+                        <i class="fa-solid fa-stopwatch text-teal me-2"></i>Average Service Duration by Department (Mins)
+                    </h6>
+                    <span class="badge bg-teal-subtle text-teal">Actual Durations</span>
+                </div>
+                <div class="card-body p-3">
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="avgServiceTimeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 5: Counter Throughput -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-bars-progress text-primary me-2"></i>Counter Performance (Patients Served per Station)
+                    </h6>
+                    <span class="badge bg-blue-subtle text-primary">Station Throughput</span>
+                </div>
+                <div class="card-body p-3">
+                    <div style="height: 220px; position: relative;">
+                        <canvas id="counterPerformanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Admin Entity Management Tabs with Section 7 Edit Pencil Icons -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <ul class="nav nav-pills card-header-pills" id="adminTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-semibold" id="departments-tab" data-bs-toggle="pill" data-bs-target="#tab-departments" type="button" role="tab">
+                                <i class="fa-solid fa-hospital me-1"></i> Departments ({{ department_stats | length }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-semibold" id="tokens-tab" data-bs-toggle="pill" data-bs-target="#tab-tokens" type="button" role="tab">
+                                <i class="fa-solid fa-ticket me-1"></i> Today's Tokens ({{ all_tokens_today | length }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-semibold" id="patients-tab" data-bs-toggle="pill" data-bs-target="#tab-patients" type="button" role="tab">
+                                <i class="fa-solid fa-users me-1"></i> Registered Patients ({{ registered_patients | length }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-semibold" id="staff-tab" data-bs-toggle="pill" data-bs-target="#tab-staff" type="button" role="tab">
+                                <i class="fa-solid fa-user-doctor me-1"></i> Clinical Staff ({{ staff_members | length }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-semibold" id="counters-tab" data-bs-toggle="pill" data-bs-target="#tab-counters" type="button" role="tab">
+                                <i class="fa-solid fa-headset me-1"></i> Counters ({{ counter_performance | length }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-semibold" id="logs-tab" data-bs-toggle="pill" data-bs-target="#tab-logs" type="button" role="tab">
+                                <i class="fa-solid fa-list-check me-1"></i> Audit Logs ({{ staff_logs | length }})
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="tab-content" id="adminTabsContent">
+                        
+                        <!-- TAB 1: Departments -->
+                        <div class="tab-pane fade show active" id="tab-departments" role="tabpanel">
+                            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                                <span class="small text-muted">Click pencil icon to modify department names or descriptions in real time.</span>
+                                <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addDeptModal">
+                                    <i class="fa-solid fa-plus me-1"></i> Add Department
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-custom table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Department Name (Editable)</th>
+                                            <th>Code</th>
+                                            <th>Description</th>
+                                            <th>Tokens Today</th>
+                                            <th>Waiting</th>
+                                            <th>Serving</th>
+                                            <th>Completed</th>
+                                            <th>Counters</th>
+                                            <th>Avg Duration</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for d in department_stats %}
+                                        <tr>
+                                            <td>
+                                                <div class="editable-container">
+                                                    <span class="fw-bold text-dark" data-editable-id="department_{{ d.id }}">{{ d.name }}</span>
+                                                    <button class="btn-edit-pencil" data-entity-type="department" data-entity-id="{{ d.id }}" data-field-name="name" data-current-value="{{ d.name }}" data-title="Department Name" title="Edit Department Name">
+                                                        <i class="fa-solid fa-pencil"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td><span class="badge bg-light text-dark border">{{ d.code }}</span></td>
+                                            <td>
+                                                <div class="editable-container text-truncate" style="max-width: 200px;">
+                                                    <span class="small text-muted" data-editable-id="department_desc_{{ d.id }}">{{ d.description or 'No description' }}</span>
+                                                    <button class="btn-edit-pencil" data-entity-type="department" data-entity-id="{{ d.id }}" data-field-name="description" data-current-value="{{ d.description or '' }}" data-title="Department Description" title="Edit Description">
+                                                        <i class="fa-solid fa-pencil"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td><span class="fw-bold">{{ d.total_tokens }}</span></td>
+                                            <td><span class="badge badge-status-waiting">{{ d.waiting_count }}</span></td>
+                                            <td><span class="badge badge-status-serving">{{ d.serving_count }}</span></td>
+                                            <td><span class="badge badge-status-completed">{{ d.completed_count }}</span></td>
+                                            <td><span class="badge bg-success-subtle text-success">{{ d.active_counters }} Active</span></td>
+                                            <td><span class="text-teal fw-semibold">{{ d.avg_service_time }}m</span></td>
+                                            <td>
+                                                <form action="{{ url_for('admin.toggle_department', dept_id=d.id) }}" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-2 py-0 fs-xs">
+                                                        Toggle
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: Today's Tokens -->
+                        <div class="tab-pane fade" id="tab-tokens" role="tabpanel">
+                            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                                <table class="table table-custom table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Token</th>
+                                            <th>Patient Name</th>
+                                            <th>Department</th>
+                                            <th>Counter</th>
+                                            <th>Status</th>
+                                            <th>Priority Triage</th>
+                                            <th>Issued</th>
+                                            <th>Called</th>
+                                            <th>Completed</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for t in all_tokens_today %}
+                                        <tr>
+                                            <td class="fw-bold text-primary">{{ t.token_number }}</td>
+                                            <td class="fw-semibold text-dark">{{ t.patient.full_name }}</td>
+                                            <td>{{ t.department.name }}</td>
+                                            <td>{{ t.counter.name if t.counter else '--' }}</td>
+                                            <td><span class="badge badge-status-{{ t.status | lower }}">{{ t.status }}</span></td>
+                                            <td>
+                                                {% if t.is_priority %}
+                                                    <span class="badge badge-priority" title="{{ t.priority_reason }}"><i class="fa-solid fa-triangle-exclamation me-1"></i>Priority</span>
+                                                {% else %}
+                                                    <span class="badge bg-light text-muted border">Regular</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="small text-muted">{{ t.created_at.strftime('%H:%M:%S') }}</td>
+                                            <td class="small text-muted">{{ t.called_at.strftime('%H:%M:%S') if t.called_at else '--' }}</td>
+                                            <td class="small text-muted">{{ t.completed_at.strftime('%H:%M:%S') if t.completed_at else '--' }}</td>
+                                        </tr>
+                                        {% else %}
+                                        <tr><td colspan="9" class="text-center py-4 text-muted">No tokens generated today yet.</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 3: Registered Patients (with Section 7 Edit Names) -->
+                        <div class="tab-pane fade" id="tab-patients" role="tabpanel">
+                            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                                <table class="table table-custom table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Patient Full Name (Editable)</th>
+                                            <th>Username</th>
+                                            <th>Email</th>
+                                            <th>Phone</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for p in registered_patients %}
+                                        <tr>
+                                            <td class="fw-bold text-muted">#{{ p.id }}</td>
+                                            <td>
+                                                <div class="editable-container">
+                                                    <span class="fw-semibold text-dark" data-editable-id="user_{{ p.id }}">{{ p.full_name }}</span>
+                                                    <button class="btn-edit-pencil" data-entity-type="user" data-entity-id="{{ p.id }}" data-field-name="full_name" data-current-value="{{ p.full_name }}" data-title="Patient Full Name" title="Edit Patient Name">
+                                                        <i class="fa-solid fa-pencil"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td><code>{{ p.username }}</code></td>
+                                            <td>{{ p.email or '--' }}</td>
+                                            <td>{{ p.phone or '--' }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ 'success' if p.is_active_account else 'danger' }}-subtle text-{{ 'success' if p.is_active_account else 'danger' }}">
+                                                    {{ 'Active' if p.is_active_account else 'Disabled' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <form action="{{ url_for('admin.toggle_user', user_id=p.id) }}" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-2 py-0 fs-xs">
+                                                        {{ 'Deactivate' if p.is_active_account else 'Activate' }}
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% else %}
+                                        <tr><td colspan="7" class="text-center py-4 text-muted">No registered patients found.</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 4: Clinical Staff (with Section 7 Edit Names) -->
+                        <div class="tab-pane fade" id="tab-staff" role="tabpanel">
+                            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                                <span class="small text-muted">Manage clinical staff personnel and department assignments.</span>
+                                <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+                                    <i class="fa-solid fa-user-plus me-1"></i> Add Staff Account
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-custom table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Staff ID</th>
+                                            <th>Full Name (Editable)</th>
+                                            <th>Username</th>
+                                            <th>Email</th>
+                                            <th>Assigned Department</th>
+                                            <th>Account Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for s in staff_members %}
+                                        <tr>
+                                            <td class="fw-bold text-muted">#{{ s.id }}</td>
+                                            <td>
+                                                <div class="editable-container">
+                                                    <span class="fw-semibold text-dark" data-editable-id="user_{{ s.id }}">{{ s.full_name }}</span>
+                                                    <button class="btn-edit-pencil" data-entity-type="user" data-entity-id="{{ s.id }}" data-field-name="full_name" data-current-value="{{ s.full_name }}" data-title="Staff Name" title="Edit Staff Name">
+                                                        <i class="fa-solid fa-pencil"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td><code>{{ s.username }}</code></td>
+                                            <td>{{ s.email }}</td>
+                                            <td>
+                                                <span class="badge bg-primary-subtle text-primary">
+                                                    {{ s.staff_profile.department.name if s.staff_profile and s.staff_profile.department else 'General' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ 'success' if s.is_active_account else 'danger' }}-subtle text-{{ 'success' if s.is_active_account else 'danger' }}">
+                                                    {{ 'Active' if s.is_active_account else 'Disabled' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <form action="{{ url_for('admin.toggle_user', user_id=s.id) }}" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-2 py-0 fs-xs">
+                                                        {{ 'Deactivate' if s.is_active_account else 'Activate' }}
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 5: Active Counters (with Section 7 Edit Names) -->
+                        <div class="tab-pane fade" id="tab-counters" role="tabpanel">
+                            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                                <span class="small text-muted">Counter stations and real-time handling metrics.</span>
+                                <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addCounterModal">
+                                    <i class="fa-solid fa-plus me-1"></i> Add Counter
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-custom table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Counter Station (Editable)</th>
+                                            <th>Department</th>
+                                            <th>Operating Status</th>
+                                            <th>Assigned Clinical Staff</th>
+                                            <th>Patients Served Today</th>
+                                            <th>Avg Handling Duration</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for c in counter_performance %}
+                                        <tr>
+                                            <td>
+                                                <div class="editable-container">
+                                                    <span class="fw-bold text-dark" data-editable-id="counter_{{ c.id }}">{{ c.name }}</span>
+                                                    <button class="btn-edit-pencil" data-entity-type="counter" data-entity-id="{{ c.id }}" data-field-name="name" data-current-value="{{ c.name }}" data-title="Counter Station Name" title="Edit Counter Name">
+                                                        <i class="fa-solid fa-pencil"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td><span class="badge bg-light text-muted border">{{ c.department_name }}</span></td>
+                                            <td>
+                                                <span class="badge counter-pill {{ c.status | lower }}">{{ c.status }}</span>
+                                            </td>
+                                            <td>{{ c.current_staff }}</td>
+                                            <td><span class="fw-bold text-primary">{{ c.patients_served }}</span></td>
+                                            <td><span class="fw-semibold text-teal">{{ c.avg_handling_time }} mins</span></td>
+                                            <td>
+                                                <form action="{{ url_for('admin.toggle_counter', counter_id=c.id) }}" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-2 py-0 fs-xs">Toggle</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 6: Audit Logs -->
+                        <div class="tab-pane fade" id="tab-logs" role="tabpanel">
+                            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                                <table class="table table-custom table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>User</th>
+                                            <th>Action Executed</th>
+                                            <th>Target Type</th>
+                                            <th>Audit Trail Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for log in staff_logs %}
+                                        <tr>
+                                            <td class="small text-muted text-nowrap">
+                                                <i class="fa-regular fa-clock me-1"></i>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                            </td>
+                                            <td class="fw-semibold text-dark text-nowrap">{{ log.user.full_name if log.user else 'System' }}</td>
+                                            <td><span class="badge bg-primary-subtle text-primary">{{ log.action }}</span></td>
+                                            <td class="small text-muted">{{ log.target_type or '--' }}</td>
+                                            <td class="small text-muted">{{ log.details }}</td>
+                                        </tr>
+                                        {% else %}
+                                        <tr><td colspan="5" class="text-center py-4 text-muted">No audit logs recorded.</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: Add Department -->
+<div class="modal fade" id="addDeptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4">
+            <form action="{{ url_for('admin.add_department') }}" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Add Clinical Department</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Department Name *</label>
+                        <input type="text" class="form-control rounded-3" name="name" placeholder="e.g. Oncology" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Department Code *</label>
+                        <input type="text" class="form-control rounded-3" name="code" placeholder="e.g. ONC" maxlength="10" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Default Service Time (Minutes)</label>
+                        <input type="number" class="form-control rounded-3" name="default_service_time" value="10" min="1" max="120">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Description</label>
+                        <textarea class="form-control rounded-3" name="description" rows="2" placeholder="Clinical scope of consultations..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Create Department</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Staff Account -->
+<div class="modal fade" id="addStaffModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4">
+            <form action="{{ url_for('admin.add_staff') }}" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Register Clinical Staff Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Full Name *</label>
+                        <input type="text" class="form-control rounded-3" name="full_name" placeholder="e.g. Dr. John Carter, MD" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-muted">Username *</label>
+                            <input type="text" class="form-control rounded-3" name="username" placeholder="jcarter" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-muted">Initial Password</label>
+                            <input type="text" class="form-control rounded-3" name="password" value="Staff@123">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Assign Department *</label>
+                        <select class="form-select rounded-3" name="department_id" required>
+                            {% for d in department_stats %}
+                            <option value="{{ d.id }}">{{ d.name }} ({{ d.code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Email Address</label>
+                        <input type="email" class="form-control rounded-3" name="email" placeholder="staff@hospital.org">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Create Staff Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Counter -->
+<div class="modal fade" id="addCounterModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4">
+            <form action="{{ url_for('admin.add_counter') }}" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Add Consultation Counter Station</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Department *</label>
+                        <select class="form-select rounded-3" name="department_id" required>
+                            {% for d in department_stats %}
+                            <option value="{{ d.id }}">{{ d.name }} ({{ d.code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Counter Station Name *</label>
+                        <input type="text" class="form-control rounded-3" name="name" placeholder="e.g. Counter 3 (Senior Clinic)" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Save Counter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Chart.js Visualizations
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Daily Status Doughnut Chart
+    const statusCtx = document.getElementById('dailyStatusChart')?.getContext('2d');
+    if (statusCtx) {
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ charts.daily_status.labels | tojson }},
+                datasets: [{
+                    data: {{ charts.daily_status.datasets[0].data | tojson }},
+                    backgroundColor: {{ charts.daily_status.datasets[0].backgroundColor | tojson }},
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
+    // 2. Department Distribution Bar Chart
+    const deptCtx = document.getElementById('deptDistributionChart')?.getContext('2d');
+    if (deptCtx) {
+        new Chart(deptCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ charts.dept_distribution.labels | tojson }},
+                datasets: [{
+                    label: 'Tokens Issued Today',
+                    data: {{ charts.dept_distribution.datasets[0].data | tojson }},
+                    backgroundColor: {{ charts.dept_distribution.datasets[0].backgroundColor | tojson }},
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+
+    // 3. Peak Hours Line Chart
+    const peakCtx = document.getElementById('peakHoursChart')?.getContext('2d');
+    if (peakCtx) {
+        new Chart(peakCtx, {
+            type: 'line',
+            data: {
+                labels: {{ charts.peak_hours.labels | tojson }},
+                datasets: [{
+                    label: 'Patient Arrivals',
+                    data: {{ charts.peak_hours.datasets[0].data | tojson }},
+                    borderColor: '#0284c7',
+                    backgroundColor: 'rgba(2, 132, 199, 0.15)',
+                    fill: true,
+                    tension: 0.35,
+                    pointBackgroundColor: '#0284c7',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+
+    // 4. Average Service Time Chart
+    const avgCtx = document.getElementById('avgServiceTimeChart')?.getContext('2d');
+    if (avgCtx) {
+        new Chart(avgCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ charts.avg_service_time.labels | tojson }},
+                datasets: [{
+                    label: 'Avg Duration (Mins)',
+                    data: {{ charts.avg_service_time.datasets[0].data | tojson }},
+                    backgroundColor: '#14b8a6',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { x: { beginAtZero: true, title: { display: true, text: 'Minutes' } } }
+            }
+        });
+    }
+
+    // 5. Counter Throughput Bar Chart
+    const counterCtx = document.getElementById('counterPerformanceChart')?.getContext('2d');
+    if (counterCtx) {
+        new Chart(counterCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ charts.counter_performance.labels | tojson }},
+                datasets: [{
+                    label: 'Patients Served',
+                    data: {{ charts.counter_performance.datasets[0].data | tojson }},
+                    backgroundColor: '#0284c7',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

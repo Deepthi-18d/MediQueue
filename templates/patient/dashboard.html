@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient Dashboard – {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark">
+                Welcome, <span class="text-primary">{{ current_user.full_name }}</span>
+            </h3>
+            <p class="text-muted mb-0">
+                Patient ID: <span class="fw-semibold text-dark">#{{ current_user.id }}</span> | 
+                Total Completed Hospital Visits: <span class="badge bg-light text-dark border">{{ total_visits }}</span>
+            </p>
+        </div>
+        <div class="mt-2 mt-md-0 d-flex gap-2">
+            <a href="{{ url_for('patient.profile') }}" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm">
+                <i class="fa-solid fa-user-pen me-1"></i> Edit Profile
+            </a>
+            <button onclick="window.location.reload();" class="btn btn-light btn-sm rounded-pill px-3 border shadow-sm">
+                <i class="fa-solid fa-arrows-rotate me-1"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Active Token Live Tracking Hero Section -->
+    {% if active_token %}
+    <div class="card border-0 shadow-sm mb-4 token-card">
+        <div class="card-body p-4 position-relative">
+            <div class="row align-items-center gy-4">
+                <div class="col-lg-7">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-teal text-white rounded-pill px-3 py-1">Active Queue Token</span>
+                        <span class="badge badge-status-{{ active_token.status | lower }} rounded-pill px-3 py-1">
+                            {{ active_token.status }}
+                        </span>
+                        {% if active_token.is_priority %}
+                            <span class="badge badge-priority rounded-pill px-3 py-1" title="{{ active_token.priority_reason }}">
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i> Priority Triage
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="token-number-hero my-1">{{ active_token.token_number }}</div>
+
+                    <h5 class="fw-bold text-white mb-3">
+                        <i class="fa-solid fa-stethoscope me-1 text-teal"></i> {{ active_token.department_name }}
+                    </h5>
+
+                    <!-- Waiting Time & Queue Position Metrics -->
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <div class="wait-time-badge">
+                            <i class="fa-solid fa-hourglass-half"></i>
+                            <span>Est. Waiting Time: <b>~{{ active_token.estimated_wait_time }} mins</b></span>
+                        </div>
+                        <div class="wait-time-badge" style="background: rgba(2, 132, 199, 0.25); border-color: rgba(2, 132, 199, 0.4); color: #7dd3fc;">
+                            <i class="fa-solid fa-users"></i>
+                            <span>Queue Position: <b>#{{ active_token.queue_position }}</b> ({{ active_token.patients_ahead }} ahead)</span>
+                        </div>
+                        <div class="wait-time-badge" style="background: rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.4); color: #fde68a;">
+                            <i class="fa-solid fa-headset"></i>
+                            <span>Counter: <b>{{ active_token.counter_name }}</b></span>
+                        </div>
+                    </div>
+
+                    <p class="small text-slate-300 mb-4" style="max-width: 600px;">
+                        <i class="fa-solid fa-circle-info me-1"></i> {{ active_token.disclaimer }}
+                    </p>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ url_for('patient.view_token', token_id=active_token.id) }}" class="btn btn-teal rounded-pill px-4 shadow-sm">
+                            <i class="fa-solid fa-qrcode me-1"></i> Printable Token & QR
+                        </a>
+                        {% if active_token.status in ['WAITING', 'CALLED'] %}
+                        <form action="{{ url_for('patient.cancel_token') }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel your queue token?');" class="d-inline">
+                            <input type="hidden" name="token_id" value="{{ active_token.id }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-2 text-white border-danger">
+                                <i class="fa-solid fa-ban me-1"></i> Cancel Token
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- QR Code & Live Serving Box -->
+                <div class="col-lg-5 text-center text-lg-end">
+                    <div class="p-3 bg-white rounded-4 shadow-sm d-inline-block text-dark text-center" style="max-width: 240px;">
+                        {% if active_token.qr_code_data %}
+                            <img src="{{ active_token.qr_code_data }}" alt="Token QR Code" class="img-fluid rounded-3 mb-2" style="width: 170px; height: 170px;">
+                        {% else %}
+                            <div class="p-4 bg-light rounded-3 mb-2"><i class="fa-solid fa-qrcode fa-4x text-muted"></i></div>
+                        {% endif %}
+                        <div class="fw-bold small text-dark">{{ active_token.token_number }}</div>
+                        <div class="text-muted fs-xs">Scan at Counter / Kiosk</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State: No Active Token -->
+    <div class="card border-0 shadow-sm mb-4 p-4 text-center bg-light">
+        <div class="py-3">
+            <div class="brand-icon-box mx-auto mb-3" style="width: 50px; height: 50px;">
+                <i class="fa-solid fa-ticket fs-3 text-teal"></i>
+            </div>
+            <h5 class="fw-bold text-dark mb-1">No Active Queue Token</h5>
+            <p class="text-muted small mb-3">You do not hold an active queue token. Select a clinical department below to book one immediately.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row g-4 mb-4">
+        <!-- 1. Book New Token Section -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-plus-circle text-primary me-2"></i>Book New Consultation Token
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <form action="{{ url_for('patient.generate_token') }}" method="POST">
+                        <div class="mb-3">
+                            <label for="deptSelect" class="form-label small fw-semibold text-muted">Select Clinical Department *</label>
+                            <select class="form-select form-select-lg rounded-3 shadow-none" id="deptSelect" name="department_id" required>
+                                <option value="" disabled selected>-- Choose Department --</option>
+                                {% for d in departments %}
+                                <option value="{{ d.id }}">{{ d.name }} ({{ d.code }}) – Avg ~{{ d.default_service_time }}m</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text small text-muted">Each token is assigned directly to the department queue. Duplicate active tokens in the same department are automatically prevented.</div>
+                        </div>
+
+                        <div class="p-3 bg-light rounded-3 mb-4 border">
+                            <span class="fs-xs text-uppercase fw-semibold text-muted d-block mb-1">Queue Policy & Guidelines</span>
+                            <ul class="fs-xs text-muted mb-0 ps-3">
+                                <li>Tokens are called sequentially in FIFO order.</li>
+                                <li>Critical patients flagged by clinical triage nurse receive priority.</li>
+                                <li>Please remain within audible/visual range when your token is near.</li>
+                            </ul>
+                        </div>
+
+                        <button type="submit" class="btn btn-teal w-100 rounded-pill py-2 fw-semibold shadow-sm">
+                            <i class="fa-solid fa-ticket me-1"></i> Generate Digital Token
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Live Department Waiting Times Overview -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-hospital text-primary me-2"></i>Department Queue Status
+                    </h6>
+                    <span class="badge bg-light text-muted border">Live Overview</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-custom table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Department</th>
+                                    <th>Waiting</th>
+                                    <th>Est. Wait</th>
+                                    <th>Counters</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in dept_summaries %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold text-dark">{{ d.name }}</div>
+                                        <span class="badge bg-light text-muted border fs-xs">{{ d.code }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-status-waiting">{{ d.waiting_count }} waiting</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-teal fw-bold">~{{ d.est_wait }} mins</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-blue-subtle text-primary">{{ d.active_counters }} Active</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Recent Token History Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>My Visit & Token History
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-custom table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Token Number</th>
+                                    <th>Department</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Issued At</th>
+                                    <th>Completed At</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for h in history %}
+                                <tr>
+                                    <td class="fw-bold text-primary">{{ h.token_number }}</td>
+                                    <td>{{ h.department.name }}</td>
+                                    <td>
+                                        <span class="badge badge-status-{{ h.status | lower }}">{{ h.status }}</span>
+                                    </td>
+                                    <td>{{ h.date }}</td>
+                                    <td class="small text-muted">{{ h.created_at.strftime('%H:%M:%S') }}</td>
+                                    <td class="small text-muted">{{ h.completed_at.strftime('%H:%M:%S') if h.completed_at else '--' }}</td>
+                                    <td>
+                                        <a href="{{ url_for('patient.view_token', token_id=h.id) }}" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                            View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted">
+                                        <i class="fa-solid fa-receipt fa-2x mb-2 d-block text-muted opacity-50"></i>
+                                        No previous token history found.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Real-time queue updates
+if (window.mqSocket) {
+    window.mqSocket.on('queue_updated', () => {
+        // Auto-refresh patient dashboard data
+        fetch('/api/patient/active_token')
+            .then(res => res.json())
+            .then(data => {
+                if (data.token) {
+                    // Update wait time or queue position if changed
+                    console.log('Active token updated:', data.token);
+                }
+            });
+    });
+
+    window.mqSocket.on('token_called', (data) => {
+        {% if active_token %}
+        if (data.token_id === {{ active_token.id }}) {
+            showToast(`<b>YOUR TOKEN HAS BEEN CALLED!</b><br>Please report to ${data.counter_name}.`, 'warning');
+            setTimeout(() => window.location.reload(), 1500);
+        }
+        {% endif %}
+    });
+}
+</script>
+{% endblock %}

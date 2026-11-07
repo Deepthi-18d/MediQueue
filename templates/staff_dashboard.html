@@ -1,0 +1,432 @@
+{% extends 'base.html' %}
+
+{% block title %}Staff Counter Console – MediQueue{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4" id="staffConsoleRoot">
+
+    <!-- Hidden state for JavaScript real-time updates -->
+    <input type="hidden" id="staffActiveDeptId" value="{{ current_dept.id }}">
+    <input type="hidden" id="staffActiveCounterId" value="{{ user_counter.id if user_counter else '' }}">
+
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark">
+                <i class="fa-solid fa-user-doctor text-primary me-2"></i>Clinical Staff Console
+            </h3>
+            <p class="text-muted mb-0">
+                Staff: <span class="fw-semibold text-dark">{{ current_user.full_name }}</span> | 
+                Assigned Department: <span class="badge bg-primary-subtle text-primary fw-semibold">{{ current_dept.name }} ({{ current_dept.code }})</span>
+            </p>
+        </div>
+
+        <!-- Department Switcher Dropdown -->
+        <div class="mt-2 mt-md-0 d-flex align-items-center gap-2">
+            <label class="small text-muted fw-semibold me-1 d-none d-sm-inline">Switch Department:</label>
+            <div class="dropdown">
+                <button class="btn btn-outline-primary btn-sm dropdown-toggle rounded-pill px-3 shadow-sm" type="button" data-bs-toggle="dropdown">
+                    <i class="fa-solid fa-hospital me-1"></i> {{ current_dept.name }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                    {% for d in departments %}
+                    <li>
+                        <a class="dropdown-item {% if d.id == current_dept.id %}active fw-bold{% endif %}" href="{{ url_for('staff_dashboard', dept_id=d.id) }}">
+                            {{ d.name }} ({{ d.code }})
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <span class="badge bg-success-subtle text-success px-3 py-2" id="socketStatusIndicator">
+                <span class="pulse-indicator me-1"></span> Live Active
+            </span>
+        </div>
+    </div>
+
+    <!-- Clinical Urgency Safety Guardrail Banner -->
+    <div class="clinical-guardrail-banner mb-4 d-flex align-items-center gap-3 shadow-sm">
+        <i class="fa-solid fa-shield-heart fs-4 text-primary"></i>
+        <div class="small">
+            <strong>Clinical Safety Protocol:</strong> Only authorized clinical staff can flag a patient for priority handling based on professional clinical assessment. The system never makes autonomous triage decisions. All priority actions are permanently recorded in the staff activity audit log.
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Left Column: Active Counter & Currently Serving Box -->
+        <div class="col-lg-5">
+            
+            <!-- 1. Counter Management Widget -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-desktop text-primary me-2"></i>Counter Management
+                    </h5>
+                    {% if user_counter %}
+                        {% if user_counter.status == 'Available' %}
+                            <span class="badge counter-pill available"><i class="fa-solid fa-circle me-1 small"></i> Available</span>
+                        {% elif user_counter.status == 'Busy' %}
+                            <span class="badge counter-pill busy"><i class="fa-solid fa-circle me-1 small"></i> Busy</span>
+                        {% else %}
+                            <span class="badge counter-pill offline"><i class="fa-solid fa-circle me-1 small"></i> Offline</span>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <div class="card-body p-3">
+                    {% if user_counter %}
+                    <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded-3 border">
+                        <div>
+                            <div class="text-muted small">Current Operating Counter</div>
+                            <div class="fw-bold fs-5 text-dark">{{ user_counter.name }}</div>
+                            <div class="small text-muted">Assigned to: {{ current_user.full_name }}</div>
+                        </div>
+                        <div class="text-end">
+                            <span class="small text-muted d-block mb-1">Set Counter Status:</span>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <form action="{{ url_for('staff_counter_status') }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="counter_id" value="{{ user_counter.id }}">
+                                    <input type="hidden" name="department_id" value="{{ current_dept.id }}">
+                                    <input type="hidden" name="status" value="Available">
+                                    <button type="submit" class="btn btn-outline-success {% if user_counter.status == 'Available' %}active fw-bold{% endif %}">
+                                        Available
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('staff_counter_status') }}" method="POST" class="d-inline ms-1">
+                                    <input type="hidden" name="counter_id" value="{{ user_counter.id }}">
+                                    <input type="hidden" name="department_id" value="{{ current_dept.id }}">
+                                    <input type="hidden" name="status" value="Busy">
+                                    <button type="submit" class="btn btn-outline-warning {% if user_counter.status == 'Busy' %}active fw-bold{% endif %}">
+                                        Busy
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('staff_counter_status') }}" method="POST" class="d-inline ms-1">
+                                    <input type="hidden" name="counter_id" value="{{ user_counter.id }}">
+                                    <input type="hidden" name="department_id" value="{{ current_dept.id }}">
+                                    <input type="hidden" name="status" value="Offline">
+                                    <button type="submit" class="btn btn-outline-secondary {% if user_counter.status == 'Offline' %}active fw-bold{% endif %}">
+                                        Offline
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Department Counter Overview List -->
+                    <div class="small fw-semibold text-muted mb-2">All {{ current_dept.name }} Counters:</div>
+                    <div class="list-group list-group-flush small">
+                        {% for c in counters %}
+                        <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fa-solid fa-headset me-2 text-primary"></i>
+                                <strong>{{ c.name }}</strong>
+                                <span class="text-muted ms-1">({{ c.staff_name or 'Unassigned' }})</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                {% if c.current_token_number %}
+                                    <span class="badge bg-primary-subtle text-primary">Serving: {{ c.current_token_number }}</span>
+                                {% endif %}
+                                <span class="badge counter-pill {{ c.status | lower }}">{{ c.status }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Currently Serving Patient Box -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-stethoscope text-primary me-2"></i>Currently Serving Patient
+                    </h5>
+                    {% if serving_token %}
+                        <span class="badge badge-status-serving fs-xs px-2 py-1">IN PROGRESS</span>
+                    {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary fs-xs px-2 py-1">IDLE</span>
+                    {% endif %}
+                </div>
+                <div class="card-body p-4 text-center">
+                    {% if serving_token %}
+                        <span class="text-muted small text-uppercase fw-semibold">Active Token</span>
+                        <div class="token-big-badge text-success my-2">
+                            {{ serving_token.token_number }}
+                        </div>
+                        <h5 class="fw-bold text-dark mb-1">{{ serving_token.patient_name }}</h5>
+                        <p class="text-muted small mb-3">
+                            <i class="fa-solid fa-phone me-1"></i> {{ serving_token.phone or 'Not provided' }} | 
+                            <i class="fa-regular fa-clock me-1"></i> Called at: {{ serving_token.called_at.split(' ')[1] if serving_token.called_at else 'Just now' }}
+                        </p>
+
+                        {% if serving_token.is_priority %}
+                        <div class="alert alert-warning py-1 small mb-3">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i> Priority: {{ serving_token.priority_reason }}
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex flex-wrap justify-content-center gap-2 pt-2 border-top">
+                            <!-- Complete Consultation Button (Opens Modal) -->
+                            <button type="button" class="btn btn-success rounded-pill px-4 fw-semibold" data-bs-toggle="modal" data-bs-target="#completeServiceModal">
+                                <i class="fa-solid fa-check me-1"></i> Mark Completed
+                            </button>
+
+                            <!-- No Show Button -->
+                            <form action="{{ url_for('staff_mark_noshow') }}" method="POST" class="d-inline" onsubmit="return confirm('Mark this patient as No-Show?');">
+                                <input type="hidden" name="token_id" value="{{ serving_token.id }}">
+                                <input type="hidden" name="department_id" value="{{ current_dept.id }}">
+                                <button type="submit" class="btn btn-outline-warning rounded-pill px-3">
+                                    <i class="fa-solid fa-user-slash me-1"></i> No-Show
+                                </button>
+                            </form>
+
+                            <!-- Cancel Token Button -->
+                            <form action="{{ url_for('staff_cancel_token') }}" method="POST" class="d-inline" onsubmit="return confirm('Cancel this token?');">
+                                <input type="hidden" name="token_id" value="{{ serving_token.id }}">
+                                <input type="hidden" name="department_id" value="{{ current_dept.id }}">
+                                <input type="hidden" name="reason" value="Staff cancelled active consultation">
+                                <button type="submit" class="btn btn-outline-danger rounded-pill px-3">
+                                    <i class="fa-solid fa-xmark me-1"></i> Cancel
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Complete Consultation Modal -->
+                        <div class="modal fade" id="completeServiceModal" tabindex="-1" aria-labelledby="completeServiceModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content text-start">
+                                    <form action="{{ url_for('staff_complete_service') }}" method="POST">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title fw-bold text-success" id="completeServiceModalLabel">
+                                                <i class="fa-solid fa-circle-check me-2"></i>Complete Service for {{ serving_token.token_number }}
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <input type="hidden" name="token_id" value="{{ serving_token.id }}">
+                                            <input type="hidden" name="counter_id" value="{{ user_counter.id if user_counter else 1 }}">
+                                            <input type="hidden" name="department_id" value="{{ current_dept.id }}">
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-semibold">Patient</label>
+                                                <input type="text" class="form-control" value="{{ serving_token.patient_name }}" disabled>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-semibold" for="serviceNotes">Consultation Summary / Doctor Notes (Optional)</label>
+                                                <textarea class="form-control" id="serviceNotes" name="notes" rows="3" placeholder="Consultation notes, prescriptions issued, or diagnostic recommendations..."></textarea>
+                                            </div>
+
+                                            <div class="small text-muted">
+                                                Completing this service will calculate duration, write a permanent record into <code>service_records</code>, update department average service duration, and release this counter to Available.
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary btn-sm rounded-pill" data-bs-dismiss="modal">Close</button>
+                                            <button type="submit" class="btn btn-success btn-sm rounded-pill px-4 fw-semibold">
+                                                <i class="fa-solid fa-check me-1"></i> Submit & Finish Consultation
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                    {% else %}
+                        <div class="py-4">
+                            <div class="brand-icon-box bg-light text-muted mx-auto mb-3" style="width: 56px; height: 56px; font-size: 1.5rem;">
+                                <i class="fa-solid fa-user-clock"></i>
+                            </div>
+                            <h6 class="fw-bold text-muted">Counter is Idle</h6>
+                            <p class="small text-muted mb-3">No patient is currently being served at your counter. Call the next patient in queue below.</p>
+                            
+                            <!-- Call Next Button -->
+                            <form action="{{ url_for('staff_call_next') }}" method="POST">
+                                <input type="hidden" name="counter_id" value="{{ user_counter.id if user_counter else 1 }}">
+                                <input type="hidden" name="department_id" value="{{ current_dept.id }}">
+                                <button type="submit" class="btn btn-primary bg-primary-gradient rounded-pill px-4 py-2 fw-semibold shadow-sm" {% if not queue.waiting %}disabled{% endif %}>
+                                    <i class="fa-solid fa-bullhorn me-2"></i> Call Next Patient in Line
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 3. Recent Staff Audit Logs -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-list-check text-primary me-2"></i>My Recent Activity Audit
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush small">
+                        {% for log in recent_logs %}
+                        <div class="list-group-item px-3 py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-semibold text-dark">{{ log.action }}</span>
+                                <span class="text-muted fs-xs">{{ log.created_at.split(' ')[1] }}</span>
+                            </div>
+                            <div class="text-muted fs-xs">{{ log.details }}</div>
+                        </div>
+                        {% else %}
+                        <div class="p-3 text-center text-muted small">No recent logs.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Waiting Queue Management Table & Action Controls -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-users-line text-primary"></i> Patients Waiting in Queue
+                            <span class="badge badge-status-waiting fs-xs" id="staffWaitingCount">{{ queue.waiting | length }} waiting</span>
+                        </h5>
+                        <div class="small text-muted">Queue is sorted with verified priority triage patients first, then standard FIFO arrival.</div>
+                    </div>
+
+                    <!-- Call Next Quick Action -->
+                    <form action="{{ url_for('staff_call_next') }}" method="POST" class="mt-2 mt-sm-0">
+                        <input type="hidden" name="counter_id" value="{{ user_counter.id if user_counter else 1 }}">
+                        <input type="hidden" name="department_id" value="{{ current_dept.id }}">
+                        <button type="submit" class="btn btn-teal btn-sm rounded-pill px-3 fw-semibold shadow-sm" {% if not queue.waiting or (serving_token and user_counter.status == 'Busy') %}disabled{% endif %}>
+                            <i class="fa-solid fa-bullhorn me-1"></i> Call Next Patient
+                        </button>
+                    </form>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-custom table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Pos</th>
+                                    <th>Token</th>
+                                    <th>Patient Details</th>
+                                    <th>Arrival</th>
+                                    <th>Priority Triage</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staffWaitingTableBody">
+                                {% if queue.waiting %}
+                                    {% for token in queue.waiting %}
+                                    <tr class="{% if token.is_priority %}table-warning{% endif %}">
+                                        <td class="fw-bold text-muted">#{{ loop.index }}</td>
+                                        <td>
+                                            <span class="fw-bold fs-6 text-primary">{{ token.token_number }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold text-dark">{{ token.patient_name }}</div>
+                                            <div class="small text-muted">{{ token.patient_phone or 'No phone' }}</div>
+                                        </td>
+                                        <td>
+                                            <span class="small text-muted"><i class="fa-regular fa-clock me-1"></i>{{ token.created_at.split(' ')[1] }}</span>
+                                        </td>
+                                        <td>
+                                            {% if token.is_priority %}
+                                                <span class="badge badge-priority" title="{{ token.priority_reason }}">
+                                                    <i class="fa-solid fa-triangle-exclamation me-1"></i> Priority
+                                                </span>
+                                                <!-- Remove priority button -->
+                                                <form action="{{ url_for('staff_toggle_priority') }}" method="POST" class="d-inline">
+                                                    <input type="hidden" name="token_id" value="{{ token.id }}">
+                                                    <input type="hidden" name="department_id" value="{{ current_dept.id }}">
+                                                    <input type="hidden" name="is_priority" value="0">
+                                                    <button type="submit" class="btn btn-link btn-xs text-muted p-0 ms-1" title="Unset Priority">
+                                                        <i class="fa-solid fa-xmark"></i>
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <!-- Flag Priority Button (Opens Modal) -->
+                                                <button type="button" class="btn btn-xs btn-outline-warning rounded-pill px-2 py-0" data-bs-toggle="modal" data-bs-target="#priorityModal{{ token.id }}">
+                                                    <i class="fa-solid fa-flag me-1"></i> Flag
+                                                </button>
+
+                                                <!-- Priority Flagging Modal -->
+                                                <div class="modal fade" id="priorityModal{{ token.id }}" tabindex="-1" aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered">
+                                                        <div class="modal-content">
+                                                            <form action="{{ url_for('staff_toggle_priority') }}" method="POST">
+                                                                <div class="modal-header">
+                                                                    <h6 class="modal-title fw-bold text-dark">
+                                                                        <i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Flag Clinical Priority for Token {{ token.token_number }}
+                                                                    </h6>
+                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                </div>
+                                                                <div class="modal-body text-start">
+                                                                    <input type="hidden" name="token_id" value="{{ token.id }}">
+                                                                    <input type="hidden" name="department_id" value="{{ current_dept.id }}">
+                                                                    <input type="hidden" name="is_priority" value="1">
+                                                                    
+                                                                    <p class="small text-muted mb-2">
+                                                                        Flagging clinical priority moves this patient ahead in queue order. Clinical justification is mandatory for auditing.
+                                                                    </p>
+
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label small fw-semibold" for="reason{{ token.id }}">Clinical Urgency Reason</label>
+                                                                        <input type="text" class="form-control" id="reason{{ token.id }}" name="priority_reason" placeholder="e.g. Acute chest discomfort / Elderly / Pediatric fever" required>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary btn-sm rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                                                                    <button type="submit" class="btn btn-warning btn-sm rounded-pill px-3 fw-semibold">
+                                                                        Confirm Priority Triage
+                                                                    </button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="d-flex justify-content-end gap-1">
+                                                <!-- Call this specific patient button -->
+                                                <form action="{{ url_for('staff_call_next') }}" method="POST" class="d-inline">
+                                                    <input type="hidden" name="counter_id" value="{{ user_counter.id if user_counter else 1 }}">
+                                                    <input type="hidden" name="department_id" value="{{ current_dept.id }}">
+                                                    <input type="hidden" name="target_token_id" value="{{ token.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary" title="Call Patient to Counter" {% if serving_token and user_counter.status == 'Busy' %}disabled{% endif %}>
+                                                        <i class="fa-solid fa-bullhorn"></i> Call
+                                                    </button>
+                                                </form>
+
+                                                <!-- Staff Cancel token -->
+                                                <form action="{{ url_for('staff_cancel_token') }}" method="POST" class="d-inline" onsubmit="return confirm('Cancel this waiting token?');">
+                                                    <input type="hidden" name="token_id" value="{{ token.id }}">
+                                                    <input type="hidden" name="department_id" value="{{ current_dept.id }}">
+                                                    <input type="hidden" name="reason" value="Cancelled by clinical desk">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel Token">
+                                                        <i class="fa-solid fa-xmark"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4 text-muted">
+                                            <i class="fa-solid fa-clipboard-check fs-3 d-block mb-2 text-success"></i>
+                                            All caught up! No waiting patients in {{ current_dept.name }}.
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
